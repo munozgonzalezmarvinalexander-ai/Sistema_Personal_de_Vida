@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
 import OfflineBanner from './components/OfflineBanner';
 import InstallPrompt from './components/InstallPrompt';
+import ReminderChecker from './components/ReminderChecker';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Today from './pages/Today';
@@ -12,6 +13,7 @@ import Trends from './pages/Trends';
 import Experiments from './pages/Experiments';
 import Library from './pages/Library';
 import Achievements from './pages/Achievements';
+import Reminders from './pages/Reminders';
 import type { ReactNode } from 'react';
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -34,6 +36,7 @@ export default function App() {
       <AuthProvider>
         <OfflineBanner />
         <InstallPrompt />
+        <ReminderChecker />
         <Routes>
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
@@ -44,6 +47,7 @@ export default function App() {
             <Route path="/experiments" element={<Experiments />} />
             <Route path="/library" element={<Library />} />
             <Route path="/achievements" element={<Achievements />} />
+            <Route path="/reminders" element={<Reminders />} />
             <Route path="/report" element={<WeeklyReport />} />
           </Route>
         </Routes>

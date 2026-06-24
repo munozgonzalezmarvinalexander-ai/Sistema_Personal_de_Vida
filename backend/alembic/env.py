@@ -12,6 +12,7 @@ from app.models.daily_checkin import DailyCheckin
 from app.models.experiment import Experiment
 from app.models.habit_library import HabitLibraryItem
 from app.models.achievement import Achievement
+from app.models.reminder_settings import ReminderSettings
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)

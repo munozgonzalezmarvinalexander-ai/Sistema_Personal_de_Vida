@@ -824,6 +824,94 @@ a:hover { text-decoration: underline; }
   }
 }
 
+/* ============ CHECKIN STATUS ============ */
+.checkin-reminder {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--warning-bg); border-color: var(--warning);
+  margin-bottom: 1rem;
+}
+.checkin-reminder svg { color: var(--warning); flex-shrink: 0; }
+.checkin-reminder p { font-size: 0.85rem; color: var(--text); }
+
+.checkin-done {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--success-bg); border-color: var(--success);
+  margin-bottom: 1rem;
+}
+.checkin-done svg { color: var(--success); flex-shrink: 0; }
+.checkin-done p { font-size: 0.85rem; color: var(--text); }
+
+/* ============ REMINDERS ============ */
+.reminder-intro {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: var(--primary-bg); border-color: var(--primary);
+  margin-bottom: 1rem;
+}
+.reminder-intro svg { color: var(--primary); flex-shrink: 0; margin-top: 2px; }
+.reminder-intro p { font-size: 0.85rem; color: var(--text); line-height: 1.5; }
+
+.reminder-item { margin-bottom: 0.75rem; }
+.reminder-header {
+  display: flex; align-items: center; gap: 12px;
+}
+.reminder-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: var(--primary-bg); color: var(--primary);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.reminder-info { flex: 1; }
+.reminder-info h3 { margin: 0; font-size: 0.95rem; }
+.reminder-info p { margin: 0; font-size: 0.8rem; color: var(--text-light); }
+
+.reminder-config {
+  margin-top: 0.75rem; padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+.reminder-config label {
+  font-size: 0.8rem; font-weight: 500; color: var(--text-heading);
+  display: block; margin-bottom: 4px;
+}
+.reminder-config input[type="time"],
+.reminder-config select {
+  padding: 8px 12px; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); font-size: 0.9rem;
+  background: var(--bg); color: var(--text);
+}
+.reminder-row { display: flex; gap: 1rem; }
+.reminder-row > div { flex: 1; }
+
+.toggle-switch {
+  position: relative; display: inline-block;
+  width: 44px; height: 24px; flex-shrink: 0;
+}
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute; inset: 0; cursor: pointer;
+  background: var(--border); border-radius: 12px;
+  transition: 0.2s;
+}
+.toggle-slider::before {
+  content: ''; position: absolute;
+  width: 18px; height: 18px; left: 3px; bottom: 3px;
+  background: #fff; border-radius: 50%;
+  transition: 0.2s;
+}
+.toggle-switch input:checked + .toggle-slider { background: var(--primary); }
+.toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+.notif-section { margin-top: 1rem; }
+.notif-section h3 {
+  display: flex; align-items: center; gap: 8px;
+  margin: 0 0 0.5rem; font-size: 1rem;
+}
+.notif-desc { font-size: 0.85rem; color: var(--text-light); margin-bottom: 0.75rem; line-height: 1.5; }
+.notif-status { font-size: 0.85rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 6px; }
+.notif-ok { color: var(--success); }
+.notif-denied { color: var(--danger); }
+.notif-granted { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.notif-note { font-size: 0.75rem; color: var(--text-light); margin-top: 0.75rem; font-style: italic; }
+
 /* ============ UTILITIES ============ */
 .loading { text-align: center; color: var(--text-light); padding: 2rem; }
 .loading-screen {

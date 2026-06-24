@@ -284,6 +284,19 @@ export default function Today() {
         </div>
       </div>
 
+      {!checkin && (
+        <div className="card checkin-reminder">
+          <CheckCircle size={18} />
+          <p>Todavia no registraste tu dia. Puedes hacerlo en menos de 1 minuto.</p>
+        </div>
+      )}
+      {checkin && (
+        <div className="card checkin-done">
+          <CheckCircle size={18} />
+          <p>Check-in completado hoy.</p>
+        </div>
+      )}
+
       <section className="card habits-section">
         <h2>Habitos del dia</h2>
         <div className="habits-list">

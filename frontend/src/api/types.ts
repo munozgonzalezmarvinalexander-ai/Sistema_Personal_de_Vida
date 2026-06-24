@@ -220,3 +220,18 @@ export interface RecalculateResult {
   new_achievements: string[];
   total_achievements: number;
 }
+
+export interface ReminderSettings {
+  id: string;
+  user_id: string;
+  daily_checkin_enabled: boolean;
+  daily_checkin_time: string;
+  evening_shutdown_enabled: boolean;
+  evening_shutdown_time: string;
+  weekly_review_enabled: boolean;
+  weekly_review_day: string;
+  weekly_review_time: string;
+  habit_nudge_enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
