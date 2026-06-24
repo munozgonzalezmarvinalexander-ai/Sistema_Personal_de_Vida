@@ -20,3 +20,4 @@ class User(Base):
     habit_logs = relationship("HabitLog", back_populates="user", cascade="all, delete-orphan")
     daily_checkins = relationship("DailyCheckin", back_populates="user", cascade="all, delete-orphan")
     experiments = relationship("Experiment", back_populates="user", cascade="all, delete-orphan")
+    achievements = relationship("Achievement", back_populates="user", cascade="all, delete-orphan")

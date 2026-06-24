@@ -177,3 +177,46 @@ export interface HabitLibraryItem {
   active: boolean;
   created_at: string;
 }
+
+export interface AchievementItem {
+  id: string;
+  code: string;
+  title: string;
+  description: string;
+  icon: string;
+  category: string;
+  unlocked_at: string;
+}
+
+export interface AchievementDefinition {
+  code: string;
+  title: string;
+  description: string;
+  icon: string;
+  category: string;
+  unlocked: boolean;
+}
+
+export interface UserProgress {
+  level: number;
+  total_points: number;
+  current_threshold: number;
+  next_threshold: number;
+  points_in_level: number;
+  points_needed: number;
+  progress_pct: number;
+  total_checkins: number;
+  total_habits_completed: number;
+  total_experiments_completed: number;
+  total_achievements: number;
+}
+
+export interface AchievementsList {
+  unlocked: AchievementItem[];
+  available: AchievementDefinition[];
+}
+
+export interface RecalculateResult {
+  new_achievements: string[];
+  total_achievements: number;
+}

@@ -9,6 +9,7 @@ import WeeklyReport from './pages/WeeklyReport';
 import Trends from './pages/Trends';
 import Experiments from './pages/Experiments';
 import Library from './pages/Library';
+import Achievements from './pages/Achievements';
 import type { ReactNode } from 'react';
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -38,6 +39,7 @@ export default function App() {
             <Route path="/trends" element={<Trends />} />
             <Route path="/experiments" element={<Experiments />} />
             <Route path="/library" element={<Library />} />
+            <Route path="/achievements" element={<Achievements />} />
             <Route path="/report" element={<WeeklyReport />} />
           </Route>
         </Routes>

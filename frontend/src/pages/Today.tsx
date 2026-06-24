@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api, { getErrorMessage } from '../api/client';
-import type { Habit, HabitLog, DailyCheckin, LevelDone, StreakResponse } from '../api/types';
+import type { Habit, HabitLog, DailyCheckin, LevelDone, StreakResponse, UserProgress, RecalculateResult } from '../api/types';
 import {
   Sun, Moon, Droplets, Brain, Zap, UtensilsCrossed,
   Smartphone, Wallet, BookOpen, Code, GraduationCap,
-  Languages, Heart, Save, Star, AlertCircle, CheckCircle, Loader2, Flame
+  Languages, Heart, Save, Star, AlertCircle, CheckCircle, Loader2, Flame, Award
 } from 'lucide-react';
 
 const LEVEL_LABELS: Record<LevelDone, string> = {
@@ -43,6 +43,7 @@ export default function Today() {
   const [logs, setLogs] = useState<Record<string, HabitLog>>({});
   const [checkin, setCheckin] = useState<DailyCheckin | null>(null);
   const [streak, setStreak] = useState<StreakResponse | null>(null);
+  const [progress, setProgress] = useState<UserProgress | null>(null);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
@@ -75,13 +76,15 @@ export default function Today() {
     setPageError('');
     try {
       const date = todayStr();
-      const [habitsRes, logsRes, checkinRes, streakRes] = await Promise.all([
+      const [habitsRes, logsRes, checkinRes, streakRes, progressRes] = await Promise.all([
         api.get('/habits', { params: { active_only: true } }),
         api.get('/habit-logs', { params: { log_date: date } }),
         api.get('/checkins/today'),
         api.get('/reports/streaks'),
+        api.get('/gamification/progress'),
       ]);
       setStreak(streakRes.data);
+      setProgress(progressRes.data);
       setHabits(habitsRes.data);
       const logsMap: Record<string, HabitLog> = {};
       for (const log of logsRes.data) {
@@ -181,6 +184,14 @@ export default function Today() {
         setCheckin(res.data);
       }
       showToast('success', 'Dia guardado correctamente');
+      try {
+        const recalc = await api.post<RecalculateResult>('/gamification/recalculate');
+        if (recalc.data.new_achievements.length > 0) {
+          setTimeout(() => showToast('success', 'Logro desbloqueado!'), 1500);
+        }
+        const progRes = await api.get('/gamification/progress');
+        setProgress(progRes.data);
+      } catch { /* ignore gamification errors */ }
     } catch (err) {
       showToast('error', getErrorMessage(err));
     } finally {
@@ -247,6 +258,12 @@ export default function Today() {
             <div className="streak-badge">
               <Flame size={18} />
               <span>{streak.current_streak}</span>
+            </div>
+          )}
+          {progress && (
+            <div className="level-badge-small">
+              <Award size={16} />
+              <span>Nv.{progress.level}</span>
             </div>
           )}
         </div>

@@ -735,6 +735,61 @@ a:hover { text-decoration: underline; }
 
 .detail-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 
+/* ============ ACHIEVEMENTS ============ */
+.level-badge-small {
+  display: flex; align-items: center; gap: 4px;
+  background: var(--primary-bg); color: var(--primary);
+  padding: 6px 12px; border-radius: 999px;
+  font-weight: 600; font-size: 0.85rem;
+}
+
+.level-card {
+  background: linear-gradient(135deg, var(--primary-bg), var(--bg-card));
+  border-color: var(--primary);
+}
+.level-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+.level-circle {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: var(--primary); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem; font-weight: 700; flex-shrink: 0;
+}
+.level-number { line-height: 1; }
+.level-info h2 { margin: 0 0 4px; }
+.level-points { font-size: 0.9rem; color: var(--text-light); }
+.level-progress { margin-bottom: 0.5rem; }
+.level-next { font-size: 0.8rem; color: var(--text-light); text-align: center; }
+
+.stats-row {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem; margin-bottom: 1.5rem;
+}
+.stat-mini {
+  text-align: center; display: flex; flex-direction: column;
+  align-items: center; gap: 4px; padding: 0.75rem;
+}
+.stat-mini svg { color: var(--primary); }
+.stat-mini-value { font-size: 1.3rem; font-weight: 700; color: var(--text-heading); }
+.stat-mini-label { font-size: 0.65rem; color: var(--text-light); text-transform: uppercase; }
+
+.achievements-grid { display: flex; flex-direction: column; gap: 0.5rem; }
+.achievement-card {
+  display: flex; align-items: flex-start; gap: 12px; padding: 1rem;
+}
+.achievement-card.unlocked { border-left: 3px solid var(--success); }
+.achievement-card.locked { opacity: 0.5; }
+
+.ach-icon {
+  width: 44px; height: 44px; border-radius: 10px;
+  background: var(--warning-bg); color: var(--warning);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.locked-icon { background: var(--bg); color: var(--text-light); }
+.ach-content h3 { margin: 0 0 2px; font-size: 0.95rem; }
+.ach-content p { font-size: 0.85rem; color: var(--text-light); margin: 0; }
+.ach-date { font-size: 0.75rem; color: var(--text-light); }
+
 /* ============ UTILITIES ============ */
 .loading { text-align: center; color: var(--text-light); padding: 2rem; }
 .loading-screen {
@@ -763,4 +818,6 @@ a:hover { text-decoration: underline; }
   .library-grid { grid-template-columns: 1fr; }
   .library-search { flex-direction: column; }
   .library-filters { flex-direction: column; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .level-circle { width: 52px; height: 52px; font-size: 1.2rem; }
 }
