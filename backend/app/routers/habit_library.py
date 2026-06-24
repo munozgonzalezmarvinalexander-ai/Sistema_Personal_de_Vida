@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.habit_library import HabitLibraryItem
 from app.models.user import User
-from app.schemas.habit_library import HabitLibraryCreate, HabitLibraryUpdate, HabitLibraryOut
+from app.schemas.habit_library import HabitLibraryOut
 
 router = APIRouter(prefix="/habit-library", tags=["habit-library"])
 
@@ -46,46 +46,3 @@ def get_library_item(
     if not item:
         raise HTTPException(status_code=404, detail="Elemento no encontrado")
     return item
-
-
-@router.post("", response_model=HabitLibraryOut, status_code=status.HTTP_201_CREATED)
-def create_library_item(
-    data: HabitLibraryCreate,
-    _current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    item = HabitLibraryItem(**data.model_dump())
-    db.add(item)
-    db.commit()
-    db.refresh(item)
-    return item
-
-
-@router.put("/{item_id}", response_model=HabitLibraryOut)
-def update_library_item(
-    item_id: str,
-    data: HabitLibraryUpdate,
-    _current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    item = db.query(HabitLibraryItem).filter(HabitLibraryItem.id == item_id).first()
-    if not item:
-        raise HTTPException(status_code=404, detail="Elemento no encontrado")
-    for key, value in data.model_dump(exclude_unset=True).items():
-        setattr(item, key, value)
-    db.commit()
-    db.refresh(item)
-    return item
-
-
-@router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_library_item(
-    item_id: str,
-    _current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    item = db.query(HabitLibraryItem).filter(HabitLibraryItem.id == item_id).first()
-    if not item:
-        raise HTTPException(status_code=404, detail="Elemento no encontrado")
-    db.delete(item)
-    db.commit()

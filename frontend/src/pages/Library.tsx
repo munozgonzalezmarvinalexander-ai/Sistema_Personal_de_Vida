@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { getErrorMessage } from '../api/client';
-import type { HabitLibraryItem, EvidenceType, DifficultyLevel } from '../api/types';
+import type { HabitLibraryItem, EvidenceType, DifficultyLevel, Habit, Experiment } from '../api/types';
 import {
-  Search, BookMarked, X, Clock, AlertTriangle, ExternalLink,
-  Plus, FlaskConical, AlertCircle, Loader2, Filter
+  Search, BookMarked, X, Clock, AlertTriangle, ExternalLink, Info,
+  Plus, FlaskConical, AlertCircle, Loader2, Filter, CheckCircle
 } from 'lucide-react';
 
 const EVIDENCE_LABELS: Record<EvidenceType, { label: string; cls: string }> = {
@@ -28,12 +28,18 @@ export default function Library() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [detail, setDetail] = useState<HabitLibraryItem | null>(null);
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
 
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('');
   const [evFilter, setEvFilter] = useState('');
   const [diffFilter, setDiffFilter] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+
+  const showToast = (type: 'success' | 'error', msg: string) => {
+    setToast({ type, msg });
+    setTimeout(() => setToast(null), 3500);
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -49,33 +55,59 @@ export default function Library() {
       .finally(() => setLoading(false));
   }, [catFilter, evFilter, diffFilter, search]);
 
-  const handleCreateHabit = (item: HabitLibraryItem) => {
-    const habitData = {
-      name: item.name,
-      category: item.category,
-      level_min: `${Math.max(1, Math.round(item.daily_minutes * 0.3))} min - version minima`,
-      level_normal: `${item.daily_minutes} min - ${item.how_to_start.substring(0, 50)}`,
-      level_ideal: `${Math.round(item.daily_minutes * 1.5)} min - version completa`,
-      is_core: false,
-    };
-    api.post('/habits', habitData)
-      .then(() => { setDetail(null); navigate('/habits'); })
-      .catch((err) => setError(getErrorMessage(err)));
+  const handleCreateHabit = async (item: HabitLibraryItem) => {
+    try {
+      const habitsRes = await api.get<Habit[]>('/habits');
+      const exists = habitsRes.data.some(
+        (h) => h.name.toLowerCase() === item.name.toLowerCase()
+      );
+      if (exists) {
+        showToast('error', `Ya tienes un habito llamado "${item.name}"`);
+        return;
+      }
+      const mins = item.daily_minutes || 5;
+      await api.post('/habits', {
+        name: item.name,
+        category: item.category,
+        level_min: `${Math.max(1, Math.round(mins * 0.3))} min - version minima`,
+        level_normal: `${mins} min - practica estandar`,
+        level_ideal: `${Math.round(mins * 1.5)} min - version completa`,
+        is_core: false,
+      });
+      showToast('success', `Habito "${item.name}" creado`);
+      setDetail(null);
+      setTimeout(() => navigate('/habits'), 1500);
+    } catch (err) {
+      showToast('error', getErrorMessage(err));
+    }
   };
 
-  const handleCreateExperiment = (item: HabitLibraryItem) => {
-    const today = new Date().toISOString().split('T')[0];
-    const expData = {
-      title: item.name,
-      description: item.description,
-      hypothesis: `Creo que ${item.name.toLowerCase()} mejorara mi ${item.benefit.split(',')[0].toLowerCase().trim()}`,
-      metric_tracked: item.benefit.split(',')[0].trim(),
-      duration_days: 14,
-      start_date: today,
-    };
-    api.post('/experiments', expData)
-      .then(() => { setDetail(null); navigate('/experiments'); })
-      .catch((err) => setError(getErrorMessage(err)));
+  const handleCreateExperiment = async (item: HabitLibraryItem) => {
+    try {
+      const expsRes = await api.get<Experiment[]>('/experiments');
+      const activedup = expsRes.data.some(
+        (e) => e.status === 'active' && e.title.toLowerCase() === item.name.toLowerCase()
+      );
+      if (activedup) {
+        showToast('error', `Ya tienes un experimento activo con ese titulo`);
+        return;
+      }
+      const today = new Date().toISOString().split('T')[0];
+      const firstBenefit = item.benefit.split(',')[0].toLowerCase().trim();
+      await api.post('/experiments', {
+        title: item.name,
+        description: item.description,
+        hypothesis: `Creo que practicar "${item.name.toLowerCase()}" puede mejorar mi ${firstBenefit}`,
+        metric_tracked: item.benefit.split(',')[0].trim(),
+        duration_days: 14,
+        start_date: today,
+      });
+      showToast('success', `Experimento "${item.name}" creado (14 dias)`);
+      setDetail(null);
+      setTimeout(() => navigate('/experiments'), 1500);
+    } catch (err) {
+      showToast('error', getErrorMessage(err));
+    }
   };
 
   const activeFilters = [catFilter, evFilter, diffFilter].filter(Boolean).length;
@@ -86,12 +118,24 @@ export default function Library() {
 
   return (
     <div className="library-page">
+      {toast && (
+        <div className={`toast toast-${toast.type}`}>
+          {toast.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+          {toast.msg}
+        </div>
+      )}
+
       <header className="page-header">
         <div>
           <h1>Biblioteca</h1>
           <p className="page-subtitle">Habitos investigados y clasificados por tipo de evidencia</p>
         </div>
       </header>
+
+      <div className="card evidence-disclaimer">
+        <Info size={18} />
+        <p>Las etiquetas de evidencia indican el tipo de respaldo de cada practica. <strong>Ciencia</strong> tiene estudios publicados, <strong>tradicion</strong> viene de culturas o filosofias, y <strong>personal</strong> es experiencia practica comun. No todas las practicas tienen el mismo nivel de evidencia.</p>
+      </div>
 
       {error && <div className="error-msg"><AlertCircle size={16} /> {error}</div>}
 
@@ -225,7 +269,7 @@ export default function Library() {
                 <Plus size={16} /> Crear habito
               </button>
               <button className="btn btn-secondary" onClick={() => handleCreateExperiment(detail)}>
-                <FlaskConical size={16} /> Crear experimento
+                <FlaskConical size={16} /> Crear experimento (14d)
               </button>
             </div>
           </div>
