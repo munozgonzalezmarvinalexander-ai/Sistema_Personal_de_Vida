@@ -43,7 +43,10 @@
       "Bash(python -c \"from app.main import app; print\\('Backend import: PASS'\\)\")",
       "Bash(python -m alembic upgrade head)",
       "PowerShell(Stop-Process -Id 20892 -Force -ErrorAction SilentlyContinue)",
-      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); Set-Location \"c:\\\\Users\\\\CONACMI\\\\Desktop\\\\Sistema_Personal_de_Vida\\\\frontend\"; npx tsc --noEmit 2>&1; if \\($LASTEXITCODE -eq 0\\) { \"tsc --noEmit: PASS\" } else { \"tsc: FAIL\" })"
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); Set-Location \"c:\\\\Users\\\\CONACMI\\\\Desktop\\\\Sistema_Personal_de_Vida\\\\frontend\"; npx tsc --noEmit 2>&1; if \\($LASTEXITCODE -eq 0\\) { \"tsc --noEmit: PASS\" } else { \"tsc: FAIL\" })",
+      "Bash(python -c \"import sys,json,base64;c=base64.b64decode\\(json.load\\(sys.stdin\\)['content']\\);print\\(f'Lines: {len\\(c.split\\(chr\\(10\\).encode\\(\\)\\)\\)}'\\);print\\(c.decode\\(\\)[:200]\\)\")",
+      "Bash(python -c \"import sys,json,base64;c=base64.b64decode\\(json.load\\(sys.stdin\\)['content']\\);print\\(f'Lines: {len\\(c.split\\(chr\\(10\\).encode\\(\\)\\)\\)}'\\);print\\(c.decode\\(\\)\\)\")",
+      "Bash(python -c \"import sys,json,base64;c=base64.b64decode\\(json.load\\(sys.stdin\\)['content']\\);print\\(f'Lines: {len\\(c.split\\(chr\\(10\\).encode\\(\\)\\)\\)}'\\);print\\(c.decode\\(\\)[:300]\\)\")"
     ]
   }
 }
