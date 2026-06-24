@@ -1,5 +1,7 @@
 # Rumbo - Sistema Personal de Habitos
 
+![CI](https://github.com/munozgonzalezmarvinalexander-ai/Sistema_Personal_de_Vida/actions/workflows/ci.yml/badge.svg)
+
 Sistema personal para registrar habitos, metricas diarias y progreso semanal.
 
 ## Stack
@@ -97,6 +99,38 @@ App: http://localhost:5173
 - Normal = 2 puntos
 - Ideal = 3 puntos
 - Solo se suman, nunca se restan
+
+## Tests
+
+### Backend
+
+```bash
+cd backend
+pip install -r requirements.txt
+pytest -v
+```
+
+Usa SQLite en memoria (no necesita PostgreSQL para tests).
+44 tests cubriendo auth, habits, checkins, experiments, library,
+gamification, reminders, export e insights.
+
+### Frontend
+
+```bash
+cd frontend
+npm ci
+npm run test:run
+```
+
+12 tests con Vitest + Testing Library (jsdom).
+
+### CI/CD
+
+GitHub Actions corre automaticamente en cada push y PR a main:
+- Backend: compileall, alembic migrations, pytest
+- Frontend: tsc, build, vitest
+
+El badge de CI esta al inicio de este README.
 
 ## Variables de entorno
 
