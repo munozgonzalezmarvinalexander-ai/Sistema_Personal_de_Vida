@@ -7,9 +7,11 @@ import {
 } from 'lucide-react';
 
 function getMonday(d: Date): Date {
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  return new Date(d.setDate(diff));
+  const result = new Date(d);
+  const day = result.getDay();
+  const diff = result.getDate() - day + (day === 0 ? -6 : 1);
+  result.setDate(diff);
+  return result;
 }
 
 function formatDateStr(d: Date): string {

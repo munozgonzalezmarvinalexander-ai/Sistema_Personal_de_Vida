@@ -14,11 +14,11 @@ Sistema personal para registrar hábitos, métricas diarias y progreso semanal. 
 - Node.js 18+
 - PostgreSQL 14+
 
-## Setup
+## Setup rápido
 
 ### 1. Base de datos
 
-Crea la base de datos y el usuario en PostgreSQL:
+Abre una terminal de PostgreSQL (`psql -U postgres`) y ejecuta:
 
 ```sql
 CREATE USER rumbo_user WITH PASSWORD 'rumbo_pass';
@@ -32,30 +32,35 @@ cd backend
 
 # Crear entorno virtual (recomendado)
 python -m venv .venv
-# Windows:
-.venv\Scripts\activate
+
+# Activar entorno virtual:
+# Windows (PowerShell):
+.venv\Scripts\Activate.ps1
+# Windows (CMD):
+.venv\Scripts\activate.bat
 # Linux/Mac:
 source .venv/bin/activate
 
 # Instalar dependencias
 pip install -r requirements.txt
 
-# Configurar variables de entorno
-# Edita backend/.env con tus datos de PostgreSQL
-# (ya viene con valores por defecto para desarrollo)
+# Configurar variables de entorno (opcional, ya viene listo para desarrollo)
+# Edita backend/.env si tu PostgreSQL usa credenciales diferentes
 
-# Crear tablas (migración inicial)
-alembic revision --autogenerate -m "initial"
-alembic upgrade head
+# Aplicar migración para crear las tablas
+python -m alembic upgrade head
 
 # Correr el servidor
 uvicorn app.main:app --reload --port 8000
 ```
 
-El API estará disponible en `http://localhost:8000`.
-Documentación interactiva en `http://localhost:8000/docs`.
+- API: `http://localhost:8000`
+- Documentación interactiva (Swagger): `http://localhost:8000/docs`
+- Health check: `http://localhost:8000/api/health`
 
 ### 3. Frontend
+
+En otra terminal:
 
 ```bash
 cd frontend
@@ -67,40 +72,57 @@ npm install
 npm run dev
 ```
 
-El frontend estará disponible en `http://localhost:5173`.
+- App: `http://localhost:5173`
 
-### 4. Datos seed (hábitos iniciales)
+### 4. Primer uso
 
-Al registrar un usuario nuevo, puedes crear los hábitos por defecto llamando al endpoint de seed o creándolos manualmente desde la interfaz. Los hábitos predefinidos son:
+1. Abre `http://localhost:5173` en tu navegador
+2. Crea una cuenta (Regístrate)
+3. Al registrarte se crean automáticamente 8 hábitos por defecto
+4. Usa la pantalla "Hoy" para registrar tu día
 
-- Sueño, Agua, Ejercicio, Inglés, Programación, Lectura, Meditación, Celular nocturno
+## Hábitos por defecto (seed)
 
-## Endpoints principales
+Al crear un usuario nuevo, se generan automáticamente:
+
+| Hábito | Categoría | Core |
+|--------|-----------|------|
+| Sueño | salud | Sí |
+| Agua | salud | Sí |
+| Ejercicio | salud | Sí |
+| Inglés | aprendizaje | Sí |
+| Programación | aprendizaje | No |
+| Lectura | desarrollo | No |
+| Meditación | bienestar | No |
+| Celular nocturno | bienestar | Sí |
+
+## Endpoints de la API
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
-| POST | `/api/auth/register` | Registro de usuario |
-| POST | `/api/auth/login` | Login |
-| GET | `/api/auth/me` | Usuario actual |
-| GET/POST | `/api/habits` | Listar/crear hábitos |
+| POST | `/api/auth/register` | Registro (crea usuario + hábitos seed) |
+| POST | `/api/auth/login` | Login con JWT |
+| GET | `/api/auth/me` | Usuario actual autenticado |
+| GET | `/api/habits` | Listar hábitos (`?active_only=true`) |
+| POST | `/api/habits` | Crear hábito |
 | PUT | `/api/habits/{id}` | Editar hábito |
 | PATCH | `/api/habits/{id}/toggle` | Activar/desactivar |
 | DELETE | `/api/habits/{id}` | Eliminar hábito |
 | GET | `/api/checkins/today` | Check-in de hoy |
-| POST | `/api/checkins` | Crear check-in |
+| POST | `/api/checkins` | Crear check-in diario |
 | PUT | `/api/checkins/{id}` | Actualizar check-in |
-| GET | `/api/checkins` | Listar check-ins (filtro por fecha) |
+| GET | `/api/checkins` | Listar (`?start_date=&end_date=`) |
 | POST | `/api/habit-logs` | Registrar nivel de hábito |
 | PUT | `/api/habit-logs/{id}` | Actualizar nivel |
-| GET | `/api/habit-logs` | Logs por fecha |
-| GET | `/api/reports/weekly` | Reporte semanal |
+| GET | `/api/habit-logs` | Logs por fecha (`?log_date=YYYY-MM-DD`) |
+| GET | `/api/reports/weekly` | Reporte semanal (`?start_date=YYYY-MM-DD`) |
 
 ## Pantallas
 
-1. **Login / Registro** — autenticación
-2. **Hoy** — pantalla principal: hábitos activos + métricas diarias
-3. **Hábitos** — CRUD con niveles mínima/normal/ideal
-4. **Reporte semanal** — resumen de puntos, promedios y hábitos más cumplidos
+1. **Login / Registro** — autenticación con JWT
+2. **Hoy** — pantalla principal: hábitos activos con selector de nivel + métricas diarias + nota
+3. **Hábitos** — CRUD con niveles mínima/normal/ideal, toggle activo/inactivo
+4. **Reporte semanal** — puntos, promedios de sueño/ánimo/energía, minutos por actividad, ranking de hábitos
 
 ## Puntuación
 
@@ -109,6 +131,23 @@ Al registrar un usuario nuevo, puedes crear los hábitos por defecto llamando al
 - Normal = 2 puntos
 - Ideal = 3 puntos
 - Solo se suman, nunca se restan
+
+## Variables de entorno
+
+### Backend (`backend/.env`)
+
+| Variable | Descripción | Default |
+|----------|-------------|---------|
+| `DATABASE_URL` | URL de PostgreSQL | `postgresql+psycopg://rumbo_user:rumbo_pass@localhost:5432/rumbo_db` |
+| `SECRET_KEY` | Clave para firmar JWT | `dev-secret-key-change-in-production` |
+| `ALGORITHM` | Algoritmo JWT | `HS256` |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Expiración del token | `1440` (24h) |
+
+### Frontend (`frontend/.env`)
+
+| Variable | Descripción | Default |
+|----------|-------------|---------|
+| `VITE_API_URL` | URL base de la API | `http://localhost:8000/api` |
 
 ## Próximas fases
 

@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); Set-Location \"c:\\\\Users\\\\CONACMI\\\\Desktop\\\\Sistema_Personal_de_Vida\\\\frontend\"; npx tsc --noEmit 2>&1)",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); Set-Location \"c:\\\\Users\\\\CONACMI\\\\Desktop\\\\Sistema_Personal_de_Vida\\\\frontend\"; npm run build 2>&1)",
+      "PowerShell(winget install PostgreSQL.PostgreSQL.17 --accept-source-agreements --accept-package-agreements 2>&1)",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); $pgPath = Get-ChildItem \"C:\\\\Program Files\\\\PostgreSQL\" -Directory | Sort-Object Name -Descending | Select-Object -First 1; if \\($pgPath\\) { \"$\\($pgPath.FullName\\)\\\\bin\" } else { \"NOT FOUND\" })",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\) + \";C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\"; $env:PGPASSWORD = \"postgres\"; psql -U postgres -c \"SELECT version\\(\\);\" 2>&1)",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\) + \";C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\"; $env:PGPASSWORD = \"postgres\"; psql -U postgres -c \"CREATE USER rumbo_user WITH PASSWORD 'rumbo_pass';\" 2>&1; psql -U postgres -c \"CREATE DATABASE rumbo_db OWNER rumbo_user;\" 2>&1)",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\) + \";C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\"; Set-Location \"c:\\\\Users\\\\CONACMI\\\\Desktop\\\\Sistema_Personal_de_Vida\\\\backend\"; python -m alembic revision --autogenerate -m \"initial tables\" 2>&1)",
+      "PowerShell($env:Path += \";C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\"; $env:PGPASSWORD = \"rumbo_pass\"; psql -U rumbo_user -d rumbo_db -c \"\\\\dt\" 2>&1)",
+      "PowerShell(Invoke-RestMethod -Uri \"http://localhost:8000/api/health\" -Method GET 2>&1)",
+      "PowerShell(Stop-Process -Id 21628 -Force -ErrorAction SilentlyContinue)",
+      "Bash(python -c ' *)",
+      "Bash(curl -s http://localhost:8000/api/health)",
+      "PowerShell(Stop-Process -Id 4992 -Force -ErrorAction SilentlyContinue)",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); Set-Location \"c:\\\\Users\\\\CONACMI\\\\Desktop\\\\Sistema_Personal_de_Vida\\\\frontend\"; npx tsc --noEmit 2>&1; if \\($LASTEXITCODE -eq 0\\) { Write-Output \"TypeScript: OK\" } else { Write-Output \"TypeScript: FAIL\" })"
+    ]
+  }
+}

@@ -116,7 +116,8 @@ export default function Today() {
       payload.note = metrics.note || null;
 
       if (checkin) {
-        const res = await api.put(`/checkins/${checkin.id}`, payload);
+        const { checkin_date: _, ...updatePayload } = payload;
+        const res = await api.put(`/checkins/${checkin.id}`, updatePayload);
         setCheckin(res.data);
       } else {
         const res = await api.post('/checkins', payload);

@@ -1,32 +1,43 @@
-# React + TypeScript + Vite
+# Rumbo - Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Frontend de la aplicación Rumbo, construido con React + Vite + TypeScript.
 
-Currently, two official plugins are available:
+## Setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+La app estará en `http://localhost:5173`.
+
+Requiere que el backend esté corriendo en `http://localhost:8000` (configurable en `.env`).
+
+## Scripts
+
+| Comando | Descripción |
+|---------|-------------|
+| `npm run dev` | Servidor de desarrollo con HMR |
+| `npm run build` | Build de producción (tsc + vite) |
+| `npm run preview` | Previsualizar el build de producción |
+
+## Estructura
+
+```
+src/
+├── api/           # Cliente axios + tipos TypeScript
+├── context/       # AuthContext (JWT + estado de sesión)
+├── components/    # Layout (sidebar + bottom nav)
+├── pages/         # Login, Register, Today, Habits, WeeklyReport
+├── App.tsx        # Router con rutas protegidas
+├── main.tsx       # Entry point
+└── index.css      # Estilos (responsive + dark mode)
+```
+
+## Configuración
+
+Variable de entorno en `.env`:
+
+```
+VITE_API_URL=http://localhost:8000/api
+```
