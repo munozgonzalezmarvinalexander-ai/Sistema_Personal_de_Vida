@@ -912,6 +912,59 @@ a:hover { text-decoration: underline; }
 .notif-granted { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
 .notif-note { font-size: 0.75rem; color: var(--text-light); margin-top: 0.75rem; font-style: italic; }
 
+/* ============ EXPORT ============ */
+.export-intro {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: var(--primary-bg); border-color: var(--primary);
+  margin-bottom: 0.75rem;
+}
+.export-intro svg { color: var(--primary); flex-shrink: 0; margin-top: 2px; }
+.export-intro p { font-size: 0.85rem; color: var(--text); }
+
+.export-warning {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: var(--warning-bg); border-color: var(--warning);
+  margin-bottom: 1.25rem;
+}
+.export-warning svg { color: var(--warning); flex-shrink: 0; margin-top: 2px; }
+.export-warning p { font-size: 0.85rem; color: var(--text); }
+
+.export-grid { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; }
+
+.export-card {
+  display: flex; align-items: center; gap: 1rem; padding: 1.25rem;
+}
+.export-card-icon {
+  width: 52px; height: 52px; border-radius: 12px;
+  background: var(--primary-bg); color: var(--primary);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.export-card-info { flex: 1; }
+.export-card-info h3 { margin: 0 0 4px; font-size: 0.95rem; }
+.export-card-info p { margin: 0; font-size: 0.8rem; color: var(--text-light); }
+
+.export-notes { margin-top: 1rem; }
+.export-notes h3 { font-size: 0.95rem; margin-bottom: 0.5rem; }
+.export-notes ul {
+  list-style: none; padding: 0;
+}
+.export-notes li {
+  font-size: 0.85rem; color: var(--text-light);
+  padding: 4px 0; padding-left: 1rem;
+  position: relative;
+}
+.export-notes li::before {
+  content: ''; position: absolute; left: 0; top: 12px;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--primary);
+}
+
+@media (max-width: 480px) {
+  .export-card { flex-direction: column; text-align: center; }
+  .export-card .btn { width: 100%; justify-content: center; }
+}
+
 /* ============ UTILITIES ============ */
 .loading { text-align: center; color: var(--text-light); padding: 2rem; }
 .loading-screen {

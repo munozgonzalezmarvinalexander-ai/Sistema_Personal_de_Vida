@@ -2,7 +2,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   Compass, CalendarCheck, ListChecks, BarChart3, TrendingUp,
-  FlaskConical, BookMarked, Award, Bell, LogOut
+  FlaskConical, BookMarked, Award, Bell, Download, LogOut
 } from 'lucide-react';
 
 export default function Layout() {
@@ -29,6 +29,7 @@ export default function Layout() {
           <NavLink to="/library"><BookMarked size={20} /> Biblioteca</NavLink>
           <NavLink to="/achievements"><Award size={20} /> Logros</NavLink>
           <NavLink to="/reminders"><Bell size={20} /> Recordatorios</NavLink>
+          <NavLink to="/export"><Download size={20} /> Exportar</NavLink>
           <NavLink to="/report"><BarChart3 size={20} /> Reporte</NavLink>
         </div>
         <div className="sidebar-footer">
@@ -45,7 +46,7 @@ export default function Layout() {
         <NavLink to="/" end><CalendarCheck size={18} /><span>Hoy</span></NavLink>
         <NavLink to="/habits"><ListChecks size={18} /><span>Habitos</span></NavLink>
         <NavLink to="/achievements"><Award size={18} /><span>Logros</span></NavLink>
-        <NavLink to="/reminders"><Bell size={18} /><span>Alertas</span></NavLink>
+        <NavLink to="/export"><Download size={18} /><span>Datos</span></NavLink>
         <NavLink to="/report"><BarChart3 size={18} /><span>Reporte</span></NavLink>
       </nav>
     </div>
