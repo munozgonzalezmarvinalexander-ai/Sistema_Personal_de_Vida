@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+
 from app.routers import auth, habits, habit_logs, checkins, reports
 
 app = FastAPI(
