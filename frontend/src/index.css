@@ -469,6 +469,77 @@ a:hover { text-decoration: underline; }
 .rank-item.rank-top { border-left: 3px solid var(--success); }
 .rank-item.rank-bottom { border-left: 3px solid var(--warning); }
 
+/* ============ HEADER BADGES ============ */
+.header-badges { display: flex; gap: 0.5rem; align-items: center; }
+.streak-badge {
+  display: flex; align-items: center; gap: 4px;
+  background: linear-gradient(135deg, #ef4444, #f97316);
+  color: #fff; padding: 8px 14px; border-radius: 999px;
+  font-weight: 700; font-size: 1rem;
+}
+
+/* ============ STREAKS ============ */
+.streak-cards {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem; margin-bottom: 1.25rem;
+}
+.streak-card {
+  text-align: center; display: flex; flex-direction: column;
+  align-items: center; gap: 4px; padding: 1rem;
+}
+.streak-card svg { color: var(--text-light); }
+.streak-current svg { color: #ef4444; }
+.streak-value { font-size: 1.75rem; font-weight: 700; color: var(--text-heading); }
+.streak-label { font-size: 0.7rem; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.3px; }
+
+.streak-row { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+.streak-pill {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  padding: 6px 14px; border-radius: 999px;
+  font-size: 0.85rem; font-weight: 600; color: var(--text-heading);
+}
+.streak-pill svg { color: #ef4444; }
+
+/* ============ COMPARISON BADGES ============ */
+.compare-badge {
+  display: inline-flex; align-items: center; gap: 2px;
+  font-size: 0.7rem; font-weight: 500; padding: 1px 6px;
+  border-radius: 4px; margin-top: 2px;
+}
+.dir-up { color: var(--success); }
+.dir-down { color: var(--danger); }
+.dir-equal { color: var(--text-light); }
+.compare-badge.dir-up { background: var(--success-bg); color: var(--success); }
+.compare-badge.dir-down { background: var(--danger-bg); color: var(--danger); }
+.compare-badge.dir-equal { background: var(--bg); color: var(--text-light); }
+
+/* ============ TRENDS PAGE ============ */
+.days-selector { display: flex; gap: 4px; }
+.btn-sm { padding: 6px 14px; font-size: 0.8rem; }
+
+.chart-card h2 {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 0.75rem;
+}
+.chart-container { width: 100%; }
+
+.charts-row {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;
+}
+
+.chart-legend {
+  display: flex; flex-wrap: wrap; gap: 12px; margin-top: 0.75rem;
+  justify-content: center;
+}
+.legend-item {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 0.75rem; color: var(--text-light);
+}
+.legend-dot {
+  width: 10px; height: 10px; border-radius: 2px; display: inline-block;
+}
+
 /* ============ UTILITIES ============ */
 .loading { text-align: center; color: var(--text-light); padding: 2rem; }
 .loading-screen {
@@ -490,4 +561,8 @@ a:hover { text-decoration: underline; }
   .level-btn { text-align: center; padding: 10px 8px; }
   .today-header h1 { font-size: 1.3rem; }
   .toast { left: 1rem; right: 1rem; }
+  .charts-row { grid-template-columns: 1fr; }
+  .streak-cards { grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+  .streak-value { font-size: 1.4rem; }
+  .header-badges { flex-wrap: wrap; }
 }

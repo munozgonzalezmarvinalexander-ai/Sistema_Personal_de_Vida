@@ -79,6 +79,12 @@ export interface HabitReport {
   total_points: number;
 }
 
+export interface ComparisonValue {
+  current: number | null;
+  previous: number | null;
+  direction: 'up' | 'down' | 'equal';
+}
+
 export interface WeeklyReport {
   start_date: string;
   end_date: string;
@@ -94,4 +100,32 @@ export interface WeeklyReport {
   total_meditation_minutes: number;
   habits_most_completed: HabitReport[];
   habits_least_completed: HabitReport[];
+  comparison: Record<string, ComparisonValue> | null;
+}
+
+export interface TrendDay {
+  date: string;
+  points: number;
+  sleep_hours: number | null;
+  mood: number | null;
+  energy: number | null;
+  water_liters: number | null;
+  university_study_minutes: number;
+  english_minutes: number;
+  programming_minutes: number;
+  reading_minutes: number;
+  meditation_minutes: number;
+}
+
+export interface TrendsResponse {
+  days: number;
+  data: TrendDay[];
+}
+
+export interface StreakResponse {
+  current_streak: number;
+  best_streak: number;
+  grace_days_used_this_week: number;
+  total_active_days: number;
+  total_days_checked: number;
 }

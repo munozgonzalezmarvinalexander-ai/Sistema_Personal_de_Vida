@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api, { getErrorMessage } from '../api/client';
-import type { Habit, HabitLog, DailyCheckin, LevelDone } from '../api/types';
+import type { Habit, HabitLog, DailyCheckin, LevelDone, StreakResponse } from '../api/types';
 import {
   Sun, Moon, Droplets, Brain, Zap, UtensilsCrossed,
   Smartphone, Wallet, BookOpen, Code, GraduationCap,
-  Languages, Heart, Save, Star, AlertCircle, CheckCircle, Loader2
+  Languages, Heart, Save, Star, AlertCircle, CheckCircle, Loader2, Flame
 } from 'lucide-react';
 
 const LEVEL_LABELS: Record<LevelDone, string> = {
@@ -42,6 +42,7 @@ export default function Today() {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [logs, setLogs] = useState<Record<string, HabitLog>>({});
   const [checkin, setCheckin] = useState<DailyCheckin | null>(null);
+  const [streak, setStreak] = useState<StreakResponse | null>(null);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
@@ -74,11 +75,13 @@ export default function Today() {
     setPageError('');
     try {
       const date = todayStr();
-      const [habitsRes, logsRes, checkinRes] = await Promise.all([
+      const [habitsRes, logsRes, checkinRes, streakRes] = await Promise.all([
         api.get('/habits', { params: { active_only: true } }),
         api.get('/habit-logs', { params: { log_date: date } }),
         api.get('/checkins/today'),
+        api.get('/reports/streaks'),
       ]);
+      setStreak(streakRes.data);
       setHabits(habitsRes.data);
       const logsMap: Record<string, HabitLog> = {};
       for (const log of logsRes.data) {
@@ -235,9 +238,17 @@ export default function Today() {
           <h1>{getGreeting()}, {user?.display_name?.split(' ')[0]}</h1>
           <p className="today-date">{formatDate()}</p>
         </div>
-        <div className="points-badge">
-          <Star size={20} />
-          <span>{totalPoints} pts</span>
+        <div className="header-badges">
+          <div className="points-badge">
+            <Star size={20} />
+            <span>{totalPoints} pts</span>
+          </div>
+          {streak && streak.current_streak > 0 && (
+            <div className="streak-badge">
+              <Flame size={18} />
+              <span>{streak.current_streak}</span>
+            </div>
+          )}
         </div>
       </header>
 
