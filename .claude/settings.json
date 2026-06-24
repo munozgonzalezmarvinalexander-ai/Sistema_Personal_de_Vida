@@ -14,7 +14,16 @@
       "Bash(python -c ' *)",
       "Bash(curl -s http://localhost:8000/api/health)",
       "PowerShell(Stop-Process -Id 4992 -Force -ErrorAction SilentlyContinue)",
-      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); Set-Location \"c:\\\\Users\\\\CONACMI\\\\Desktop\\\\Sistema_Personal_de_Vida\\\\frontend\"; npx tsc --noEmit 2>&1; if \\($LASTEXITCODE -eq 0\\) { Write-Output \"TypeScript: OK\" } else { Write-Output \"TypeScript: FAIL\" })"
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); Set-Location \"c:\\\\Users\\\\CONACMI\\\\Desktop\\\\Sistema_Personal_de_Vida\\\\frontend\"; npx tsc --noEmit 2>&1; if \\($LASTEXITCODE -eq 0\\) { Write-Output \"TypeScript: OK\" } else { Write-Output \"TypeScript: FAIL\" })",
+      "Bash(gh api *)",
+      "PowerShell(winget install GitHub.cli --accept-source-agreements --accept-package-agreements 2>&1)",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); gh auth status 2>&1)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(curl -s http://localhost:8000/docs)",
+      "PowerShell(Stop-Process -Id 16436 -Force -ErrorAction SilentlyContinue)",
+      "PowerShell($env:Path += \";C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\"; $env:PGPASSWORD = \"postgres\"; psql -U postgres -c \"DROP DATABASE IF EXISTS rumbo_db;\" 2>&1; psql -U postgres -c \"DROP USER IF EXISTS rumbo_user;\" 2>&1; psql -U postgres -c \"CREATE USER rumbo_user WITH PASSWORD 'rumbo_pass';\" 2>&1; psql -U postgres -c \"CREATE DATABASE rumbo_db OWNER rumbo_user;\" 2>&1)",
+      "PowerShell(Stop-Process -Id 19036 -Force -ErrorAction SilentlyContinue)"
     ]
   }
 }
