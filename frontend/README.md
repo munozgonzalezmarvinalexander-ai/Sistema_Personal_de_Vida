@@ -1,6 +1,6 @@
 # Rumbo - Frontend
 
-Frontend de la aplicación Rumbo, construido con React + Vite + TypeScript.
+Frontend de la aplicacion Rumbo, construido con React + Vite + TypeScript.
 
 ## Setup
 
@@ -9,32 +9,32 @@ npm install
 npm run dev
 ```
 
-La app estará en `http://localhost:5173`.
+La app estara en `http://localhost:5173`.
 
-Requiere que el backend esté corriendo en `http://localhost:8000` (configurable en `.env`).
+Requiere que el backend este corriendo en `http://localhost:8000` (configurable en `.env`).
 
 ## Scripts
 
-| Comando | Descripción |
+| Comando | Descripcion |
 |---------|-------------|
 | `npm run dev` | Servidor de desarrollo con HMR |
-| `npm run build` | Build de producción (tsc + vite) |
-| `npm run preview` | Previsualizar el build de producción |
+| `npm run build` | Build de produccion (tsc + vite) |
+| `npm run preview` | Previsualizar el build de produccion |
 
 ## Estructura
 
 ```
 src/
-├── api/           # Cliente axios + tipos TypeScript
-├── context/       # AuthContext (JWT + estado de sesión)
-├── components/    # Layout (sidebar + bottom nav)
-├── pages/         # Login, Register, Today, Habits, WeeklyReport
-├── App.tsx        # Router con rutas protegidas
-├── main.tsx       # Entry point
-└── index.css      # Estilos (responsive + dark mode)
+  api/           - Cliente axios + tipos TypeScript
+  context/       - AuthContext (JWT + estado de sesion)
+  components/    - Layout (sidebar + bottom nav)
+  pages/         - Login, Register, Today, Habits, WeeklyReport
+  App.tsx        - Router con rutas protegidas
+  main.tsx       - Entry point
+  index.css      - Estilos (responsive + dark mode)
 ```
 
-## Configuración
+## Configuracion
 
 Variable de entorno en `.env`:
 

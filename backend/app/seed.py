@@ -4,10 +4,10 @@ from app.models.habit import Habit
 
 DEFAULT_HABITS = [
     {
-        "name": "Sueño",
+        "name": "Sueno",
         "category": "salud",
         "level_min": "Acostarte a hora decente",
-        "level_normal": "7 horas de sueño",
+        "level_normal": "7 horas de sueno",
         "level_ideal": "7.5-8 h + misma hora de dormir/despertar",
         "is_core": True,
     },
@@ -28,7 +28,7 @@ DEFAULT_HABITS = [
         "is_core": True,
     },
     {
-        "name": "Inglés",
+        "name": "Ingles",
         "category": "aprendizaje",
         "level_min": "Escuchar algo 10 min",
         "level_normal": "15 min input",
@@ -36,9 +36,9 @@ DEFAULT_HABITS = [
         "is_core": True,
     },
     {
-        "name": "Programación",
+        "name": "Programacion",
         "category": "aprendizaje",
-        "level_min": "Leer código 10 min",
+        "level_min": "Leer codigo 10 min",
         "level_normal": "30 min en tu proyecto",
         "level_ideal": "60 min con objetivo claro",
         "is_core": False,
@@ -46,13 +46,13 @@ DEFAULT_HABITS = [
     {
         "name": "Lectura",
         "category": "desarrollo",
-        "level_min": "1 página",
+        "level_min": "1 pagina",
         "level_normal": "10-15 min",
         "level_ideal": "20-30 min + nota",
         "is_core": False,
     },
     {
-        "name": "Meditación",
+        "name": "Meditacion",
         "category": "bienestar",
         "level_min": "3 respiraciones",
         "level_normal": "5 min",
@@ -62,9 +62,9 @@ DEFAULT_HABITS = [
     {
         "name": "Celular nocturno",
         "category": "bienestar",
-        "level_min": "No redes la última hora",
-        "level_normal": "Límites activos en apps",
-        "level_ideal": "Sin redes mañana y noche",
+        "level_min": "No redes la ultima hora",
+        "level_normal": "Limites activos en apps",
+        "level_ideal": "Sin redes manana y noche",
         "is_core": True,
     },
 ]

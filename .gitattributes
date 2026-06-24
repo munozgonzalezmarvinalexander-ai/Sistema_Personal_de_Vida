@@ -1,7 +1,5 @@
-# Normalize line endings to LF on commit
 * text=auto eol=lf
 
-# Ensure these are always LF
 *.py text eol=lf
 *.ts text eol=lf
 *.tsx text eol=lf
@@ -22,8 +20,8 @@
 *.env text eol=lf
 *.mako text eol=lf
 
-# Binary files
 *.png binary
 *.jpg binary
+*.jpeg binary
 *.ico binary
 *.svg binary

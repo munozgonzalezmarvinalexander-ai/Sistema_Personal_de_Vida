@@ -5,7 +5,7 @@ from app.routers import auth, habits, habit_logs, checkins, reports
 
 app = FastAPI(
     title="Rumbo API",
-    description="Sistema personal de hábitos y mejora continua",
+    description="Sistema personal de habitos y mejora continua",
     version="1.0.0",
 )
 

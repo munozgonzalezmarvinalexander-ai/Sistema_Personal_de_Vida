@@ -43,7 +43,7 @@ def get_habit(
 ):
     habit = db.query(Habit).filter(Habit.id == habit_id, Habit.user_id == current_user.id).first()
     if not habit:
-        raise HTTPException(status_code=404, detail="Hábito no encontrado")
+        raise HTTPException(status_code=404, detail="Habito no encontrado")
     return habit
 
 
@@ -56,7 +56,7 @@ def update_habit(
 ):
     habit = db.query(Habit).filter(Habit.id == habit_id, Habit.user_id == current_user.id).first()
     if not habit:
-        raise HTTPException(status_code=404, detail="Hábito no encontrado")
+        raise HTTPException(status_code=404, detail="Habito no encontrado")
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(habit, key, value)
     db.commit()
@@ -72,7 +72,7 @@ def toggle_habit(
 ):
     habit = db.query(Habit).filter(Habit.id == habit_id, Habit.user_id == current_user.id).first()
     if not habit:
-        raise HTTPException(status_code=404, detail="Hábito no encontrado")
+        raise HTTPException(status_code=404, detail="Habito no encontrado")
     habit.active = not habit.active
     db.commit()
     db.refresh(habit)
@@ -87,6 +87,6 @@ def delete_habit(
 ):
     habit = db.query(Habit).filter(Habit.id == habit_id, Habit.user_id == current_user.id).first()
     if not habit:
-        raise HTTPException(status_code=404, detail="Hábito no encontrado")
+        raise HTTPException(status_code=404, detail="Habito no encontrado")
     db.delete(habit)
     db.commit()

@@ -14,9 +14,9 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 @router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
 def register(data: UserRegister, db: Session = Depends(get_db)):
     if db.query(User).filter(User.email == data.email).first():
-        raise HTTPException(status_code=400, detail="El email ya está registrado")
+        raise HTTPException(status_code=400, detail="El email ya esta registrado")
     if len(data.password) < 6:
-        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 6 caracteres")
+        raise HTTPException(status_code=400, detail="La contrasena debe tener al menos 6 caracteres")
     user = User(
         email=data.email,
         password_hash=hash_password(data.password),

@@ -23,7 +23,27 @@
       "Bash(curl -s http://localhost:8000/docs)",
       "PowerShell(Stop-Process -Id 16436 -Force -ErrorAction SilentlyContinue)",
       "PowerShell($env:Path += \";C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\"; $env:PGPASSWORD = \"postgres\"; psql -U postgres -c \"DROP DATABASE IF EXISTS rumbo_db;\" 2>&1; psql -U postgres -c \"DROP USER IF EXISTS rumbo_user;\" 2>&1; psql -U postgres -c \"CREATE USER rumbo_user WITH PASSWORD 'rumbo_pass';\" 2>&1; psql -U postgres -c \"CREATE DATABASE rumbo_db OWNER rumbo_user;\" 2>&1)",
-      "PowerShell(Stop-Process -Id 19036 -Force -ErrorAction SilentlyContinue)"
+      "PowerShell(Stop-Process -Id 19036 -Force -ErrorAction SilentlyContinue)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); Set-Location \"c:\\\\Users\\\\CONACMI\\\\Desktop\\\\Sistema_Personal_de_Vida\\\\frontend\"; npx tsc --noEmit 2>&1; if \\($LASTEXITCODE -eq 0\\) { \"tsc: OK\" } else { \"tsc: FAIL\" })",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); Set-Location \"c:\\\\Users\\\\CONACMI\\\\Desktop\\\\Sistema_Personal_de_Vida\\\\frontend\"; npm run build 2>&1 | Select-Object -Last 5)",
+      "PowerShell($env:Path += \";C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\"; $env:PGPASSWORD = \"postgres\"; psql -U postgres -c \"DROP DATABASE IF EXISTS rumbo_db;\" 2>&1; psql -U postgres -c \"CREATE DATABASE rumbo_db OWNER rumbo_user;\" 2>&1)",
+      "PowerShell(Stop-Process -Id 12224 -Force -ErrorAction SilentlyContinue)",
+      "Bash(git config *)",
+      "Bash(git rm *)",
+      "Bash(curl -s \"https://api.github.com/repos/munozgonzalezmarvinalexander-ai/Sistema_Personal_de_Vida/contents/backend/app/main.py\")",
+      "Bash(curl -s \"https://api.github.com/repos/munozgonzalezmarvinalexander-ai/Sistema_Personal_de_Vida/contents/backend/requirements.txt\")",
+      "Bash(curl -s \"https://api.github.com/repos/munozgonzalezmarvinalexander-ai/Sistema_Personal_de_Vida/contents/frontend/src/App.tsx\")",
+      "Bash(git reset *)",
+      "Bash(python3 -c ' *)",
+      "Bash(git checkout *)",
+      "Bash(python -m compileall app -q)",
+      "Bash(python -c \"from app.main import app; print\\('Backend import: PASS'\\)\")",
+      "Bash(python -m alembic upgrade head)",
+      "PowerShell(Stop-Process -Id 20892 -Force -ErrorAction SilentlyContinue)",
+      "PowerShell($env:Path = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); Set-Location \"c:\\\\Users\\\\CONACMI\\\\Desktop\\\\Sistema_Personal_de_Vida\\\\frontend\"; npx tsc --noEmit 2>&1; if \\($LASTEXITCODE -eq 0\\) { \"tsc --noEmit: PASS\" } else { \"tsc: FAIL\" })"
     ]
   }
 }

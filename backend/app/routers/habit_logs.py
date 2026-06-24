@@ -33,7 +33,7 @@ def create_log(
 ):
     habit = db.query(Habit).filter(Habit.id == data.habit_id, Habit.user_id == current_user.id).first()
     if not habit:
-        raise HTTPException(status_code=404, detail="Hábito no encontrado")
+        raise HTTPException(status_code=404, detail="Habito no encontrado")
     existing = (
         db.query(HabitLog)
         .filter(
@@ -44,7 +44,7 @@ def create_log(
         .first()
     )
     if existing:
-        raise HTTPException(status_code=400, detail="Ya existe un registro para este hábito en esta fecha")
+        raise HTTPException(status_code=400, detail="Ya existe un registro para este habito en esta fecha")
     points = LEVEL_POINTS.get(data.level_done.value, 0)
     log = HabitLog(
         user_id=current_user.id,
