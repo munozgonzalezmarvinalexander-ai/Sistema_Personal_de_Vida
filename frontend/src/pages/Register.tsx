@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getErrorMessage } from '../api/client';
 import { Compass } from 'lucide-react';
 
 export default function Register() {
@@ -15,17 +16,18 @@ export default function Register() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    if (!displayName.trim()) { setError('Ingresa tu nombre'); return; }
+    if (!email.trim()) { setError('Ingresa tu email'); return; }
     if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
+      setError('La contrasena debe tener al menos 6 caracteres');
       return;
     }
     setLoading(true);
     try {
-      await register(email, password, displayName);
+      await register(email, password, displayName.trim());
       navigate('/');
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      setError(msg || 'Error al registrarse');
+    } catch (err) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -50,6 +52,7 @@ export default function Register() {
               onChange={(e) => setDisplayName(e.target.value)}
               required
               placeholder="Tu nombre"
+              autoComplete="name"
             />
           </div>
           <div className="form-group">
@@ -61,17 +64,19 @@ export default function Register() {
               onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="tu@email.com"
+              autoComplete="email"
             />
           </div>
           <div className="form-group">
-            <label htmlFor="password">Contraseña</label>
+            <label htmlFor="password">Contrasena</label>
             <input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              placeholder="Mínimo 6 caracteres"
+              placeholder="Minimo 6 caracteres"
+              autoComplete="new-password"
             />
           </div>
           <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
@@ -79,7 +84,7 @@ export default function Register() {
           </button>
         </form>
         <p className="auth-link">
-          ¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link>
+          Ya tienes cuenta? <Link to="/login">Inicia sesion</Link>
         </p>
       </div>
     </div>

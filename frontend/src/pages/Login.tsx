@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getErrorMessage } from '../api/client';
 import { Compass } from 'lucide-react';
 
 export default function Login() {
@@ -14,12 +15,14 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    if (!email.trim()) { setError('Ingresa tu email'); return; }
+    if (!password) { setError('Ingresa tu contrasena'); return; }
     setLoading(true);
     try {
       await login(email, password);
       navigate('/');
-    } catch {
-      setError('Credenciales incorrectas');
+    } catch (err) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -44,17 +47,19 @@ export default function Login() {
               onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="tu@email.com"
+              autoComplete="email"
             />
           </div>
           <div className="form-group">
-            <label htmlFor="password">Contraseña</label>
+            <label htmlFor="password">Contrasena</label>
             <input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              placeholder="••••••"
+              placeholder="******"
+              autoComplete="current-password"
             />
           </div>
           <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
@@ -62,7 +67,7 @@ export default function Login() {
           </button>
         </form>
         <p className="auth-link">
-          ¿No tienes cuenta? <Link to="/register">Regístrate</Link>
+          No tienes cuenta? <Link to="/register">Registrate</Link>
         </p>
       </div>
     </div>

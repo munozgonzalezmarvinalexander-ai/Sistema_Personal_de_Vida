@@ -388,6 +388,87 @@ a:hover { text-decoration: underline; }
 .rank-days { font-size: 0.85rem; color: var(--text-light); }
 .rank-points { font-weight: 600; color: var(--warning); }
 
+/* ============ TODAY SUMMARY BAR ============ */
+.today-summary {
+  display: flex; gap: 0.75rem; margin-bottom: 1.25rem;
+}
+.summary-item {
+  flex: 1; background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 0.75rem;
+  text-align: center;
+}
+.summary-num {
+  display: block; font-size: 1.25rem; font-weight: 700;
+  color: var(--primary);
+}
+.summary-label {
+  font-size: 0.7rem; color: var(--text-light);
+  text-transform: uppercase; letter-spacing: 0.3px;
+}
+
+.habit-card.habit-done {
+  border-left: 3px solid var(--success);
+}
+.habit-points {
+  font-size: 0.8rem; font-weight: 600; color: var(--success);
+  background: var(--success-bg); padding: 2px 8px; border-radius: 4px;
+}
+
+/* ============ METRICS GROUPS ============ */
+.metrics-group { margin-bottom: 1.25rem; }
+.metrics-group-title {
+  font-size: 0.8rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--text-light);
+  margin-bottom: 0.75rem; padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.page-subtitle {
+  font-size: 0.85rem; color: var(--text-light); margin-top: 2px;
+}
+
+/* ============ TOAST ============ */
+.toast {
+  position: fixed; top: 1rem; right: 1rem; z-index: 200;
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 20px; border-radius: var(--radius-sm);
+  font-size: 0.9rem; font-weight: 500;
+  box-shadow: var(--shadow-md);
+  animation: toast-in 0.3s ease;
+}
+.toast-success { background: var(--success); color: #fff; }
+.toast-error { background: var(--danger); color: #fff; }
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============ LOADING / ERROR STATES ============ */
+.loading-state {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 3rem 1rem; color: var(--text-light); font-size: 0.95rem;
+}
+.error-state {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  padding: 3rem 1rem; color: var(--danger); text-align: center;
+}
+.error-state p { color: var(--text); }
+
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ============ INSIGHT CARD ============ */
+.insight-card {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: var(--warning-bg); border-color: var(--warning);
+}
+.insight-card svg { color: var(--warning); flex-shrink: 0; margin-top: 2px; }
+.insight-card p { font-size: 0.9rem; color: var(--text); line-height: 1.5; }
+
+.rank-item.rank-top { border-left: 3px solid var(--success); }
+.rank-item.rank-bottom { border-left: 3px solid var(--warning); }
+
 /* ============ UTILITIES ============ */
 .loading { text-align: center; color: var(--text-light); padding: 2rem; }
 .loading-screen {
@@ -396,9 +477,17 @@ a:hover { text-decoration: underline; }
 }
 .empty-state { text-align: center; color: var(--text-light); padding: 2rem 1rem; }
 
+@media (max-width: 768px) {
+  .today-summary { gap: 0.5rem; }
+  .summary-item { padding: 0.5rem; }
+  .summary-num { font-size: 1.1rem; }
+}
+
 @media (max-width: 480px) {
   .metrics-grid { grid-template-columns: 1fr; }
   .report-summary { grid-template-columns: repeat(2, 1fr); }
-  .level-buttons { flex-direction: column; }
-  .level-btn { text-align: center; }
+  .level-buttons { display: grid; grid-template-columns: repeat(2, 1fr); }
+  .level-btn { text-align: center; padding: 10px 8px; }
+  .today-header h1 { font-size: 1.3rem; }
+  .toast { left: 1rem; right: 1rem; }
 }
