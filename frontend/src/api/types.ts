@@ -129,3 +129,32 @@ export interface StreakResponse {
   total_active_days: number;
   total_days_checked: number;
 }
+
+export type ExperimentStatus = 'active' | 'completed' | 'cancelled';
+export type ExperimentDecision = 'adopt' | 'adjust' | 'discard';
+
+export interface Experiment {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  hypothesis: string;
+  metric_tracked: string;
+  duration_days: number;
+  start_date: string;
+  end_date: string;
+  status: ExperimentStatus;
+  result: string | null;
+  decision: ExperimentDecision | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExperimentCreate {
+  title: string;
+  description?: string;
+  hypothesis: string;
+  metric_tracked: string;
+  duration_days: 7 | 14 | 30;
+  start_date: string;
+}

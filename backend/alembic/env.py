@@ -9,6 +9,7 @@ from app.models.user import User
 from app.models.habit import Habit
 from app.models.habit_log import HabitLog
 from app.models.daily_checkin import DailyCheckin
+from app.models.experiment import Experiment
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)

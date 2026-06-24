@@ -540,6 +540,108 @@ a:hover { text-decoration: underline; }
   width: 10px; height: 10px; border-radius: 2px; display: inline-block;
 }
 
+/* ============ EXPERIMENTS ============ */
+.experiment-intro {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: var(--primary-bg); border-color: var(--primary);
+  margin-bottom: 1.25rem;
+}
+.experiment-intro svg { color: var(--primary); flex-shrink: 0; margin-top: 2px; }
+.experiment-intro p { font-size: 0.9rem; color: var(--text); line-height: 1.5; }
+
+.section-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 1.1rem; font-weight: 600; color: var(--text-heading);
+  margin: 1.5rem 0 0.75rem;
+}
+
+.experiments-grid {
+  display: flex; flex-direction: column; gap: 0.75rem;
+}
+
+.experiment-card { position: relative; }
+.experiment-active { border-left: 3px solid var(--primary); }
+.experiment-completed { border-left: 3px solid var(--success); opacity: 0.9; }
+.experiment-cancelled { border-left: 3px solid var(--text-light); opacity: 0.6; }
+
+.exp-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: 0.5rem;
+}
+.exp-header h3 { margin: 0; font-size: 1rem; }
+.exp-duration {
+  font-size: 0.75rem; font-weight: 600; padding: 2px 8px;
+  border-radius: 4px; background: var(--primary-bg); color: var(--primary);
+}
+
+.exp-desc { font-size: 0.85rem; color: var(--text-light); margin-bottom: 0.5rem; }
+
+.exp-hypothesis {
+  display: flex; align-items: flex-start; gap: 6px;
+  font-size: 0.85rem; color: var(--text); margin-bottom: 0.5rem;
+  font-style: italic;
+}
+.exp-hypothesis svg { color: var(--warning); flex-shrink: 0; margin-top: 2px; }
+
+.exp-metric {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.8rem; color: var(--text-light); margin-bottom: 0.75rem;
+}
+.exp-metric svg { color: var(--primary); }
+
+.exp-progress { margin-bottom: 0.75rem; }
+.progress-bar {
+  height: 8px; background: var(--border); border-radius: 4px;
+  overflow: hidden; margin-bottom: 4px;
+}
+.progress-fill {
+  height: 100%; background: var(--primary); border-radius: 4px;
+  transition: width 0.3s ease;
+}
+.progress-info {
+  display: flex; justify-content: space-between;
+  font-size: 0.75rem; color: var(--text-light);
+}
+
+.exp-dates {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.8rem; color: var(--text-light); margin-bottom: 0.75rem;
+}
+.exp-dates svg { flex-shrink: 0; }
+
+.exp-result {
+  font-size: 0.85rem; color: var(--text);
+  margin-bottom: 0.5rem; line-height: 1.5;
+}
+
+.exp-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+.decision-badge {
+  font-size: 0.75rem; font-weight: 600; padding: 2px 8px;
+  border-radius: 4px; background: var(--bg);
+}
+
+.complete-info {
+  margin-bottom: 1rem; padding: 0.75rem;
+  background: var(--bg); border-radius: var(--radius-sm);
+}
+.complete-info p { font-size: 0.85rem; margin-bottom: 0.25rem; }
+
+.decision-buttons { display: flex; gap: 0.5rem; }
+.decision-btn {
+  flex: 1; padding: 10px; border: 2px solid var(--border);
+  border-radius: var(--radius-sm); background: var(--bg-card);
+  color: var(--text); font-weight: 500; cursor: pointer;
+  transition: all 0.15s;
+}
+.decision-btn.active {
+  border-color: var(--dec-color);
+  color: var(--dec-color);
+  background: color-mix(in srgb, var(--dec-color) 10%, var(--bg-card));
+}
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
 /* ============ UTILITIES ============ */
 .loading { text-align: center; color: var(--text-light); padding: 2rem; }
 .loading-screen {

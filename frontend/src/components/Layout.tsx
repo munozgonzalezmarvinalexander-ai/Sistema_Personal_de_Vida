@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Compass, CalendarCheck, ListChecks, BarChart3, TrendingUp, LogOut } from 'lucide-react';
+import { Compass, CalendarCheck, ListChecks, BarChart3, TrendingUp, FlaskConical, LogOut } from 'lucide-react';
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -22,6 +22,7 @@ export default function Layout() {
           <NavLink to="/" end><CalendarCheck size={20} /> Hoy</NavLink>
           <NavLink to="/habits"><ListChecks size={20} /> Habitos</NavLink>
           <NavLink to="/trends"><TrendingUp size={20} /> Progreso</NavLink>
+          <NavLink to="/experiments"><FlaskConical size={20} /> Experimentos</NavLink>
           <NavLink to="/report"><BarChart3 size={20} /> Reporte</NavLink>
         </div>
         <div className="sidebar-footer">
@@ -38,6 +39,7 @@ export default function Layout() {
         <NavLink to="/" end><CalendarCheck size={20} /><span>Hoy</span></NavLink>
         <NavLink to="/habits"><ListChecks size={20} /><span>Habitos</span></NavLink>
         <NavLink to="/trends"><TrendingUp size={20} /><span>Progreso</span></NavLink>
+        <NavLink to="/experiments"><FlaskConical size={20} /><span>Exp</span></NavLink>
         <NavLink to="/report"><BarChart3 size={20} /><span>Reporte</span></NavLink>
       </nav>
     </div>

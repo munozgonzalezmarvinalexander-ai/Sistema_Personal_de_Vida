@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 
-from app.routers import auth, habits, habit_logs, checkins, reports
+from app.routers import auth, habits, habit_logs, checkins, reports, experiments
 
 app = FastAPI(
     title="Rumbo API",
@@ -23,6 +23,7 @@ app.include_router(habits.router, prefix="/api")
 app.include_router(habit_logs.router, prefix="/api")
 app.include_router(checkins.router, prefix="/api")
 app.include_router(reports.router, prefix="/api")
+app.include_router(experiments.router, prefix="/api")
 
 
 @app.get("/api/health")
