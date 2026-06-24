@@ -23,7 +23,7 @@ Requiere backend corriendo en http://localhost:8000.
 
 ## PWA
 
-Rumbo es una Progressive Web App instalable.
+Rumbo es una Progressive Web App instalable en Android, iOS y escritorio.
 
 ### Probar PWA
 
@@ -44,20 +44,44 @@ Rumbo es una Progressive Web App instalable.
 
 1. Abrir en Safari
 2. Compartir > "Agregar a pantalla de inicio"
+3. El prompt de instalacion no aparece en iOS (limitacion de Safari)
 
 ### Probar offline
 
 1. DevTools > Network > marcar "Offline"
-2. Aparece banner amarillo "Sin conexion"
-3. La app se abre pero no puede cargar datos del backend
+2. Aparece banner amarillo con dos lineas:
+   "Sin conexion" + "Puedes ver la app, pero guardar datos requiere internet"
+3. La app se abre gracias al cache de assets estaticos
 4. Al reconectar, funciona normalmente
+
+### Que se cachea
+
+- Assets estaticos: JS, CSS, HTML, iconos, SVG (precache)
+- /api/health: NetworkFirst, 60s cache, solo para verificar disponibilidad
+- /api/habit-library: StaleWhileRevalidate, 1h cache (lectura publica)
+
+### Que NO se cachea
+
+- /api/auth/* (login, registro, tokens)
+- /api/checkins/* (datos privados del usuario)
+- /api/habits/* (habitos del usuario)
+- /api/habit-logs/* (registros diarios)
+- /api/experiments/* (experimentos del usuario)
+- /api/gamification/* (logros y progreso)
+- /api/reports/* (reportes semanales y tendencias)
+
+Esto es intencional: los datos privados no deben persistir en
+cache del service worker sin control del usuario.
 
 ### Limitaciones actuales
 
-- Offline completo no implementado (no guarda datos localmente)
-- Backend debe estar disponible para guardar check-ins, habitos, etc.
-- Cache basico de assets estaticos solamente
-- No se cachean respuestas JWT de forma persistente
+- PWA instalable con offline basico (solo shell de la app)
+- No hay sincronizacion offline: check-ins, habitos y experimentos
+  requieren conexion al backend
+- No se almacenan datos del usuario localmente
+- No hay cola de acciones pendientes para sincronizar despues
+- El prompt de instalacion se oculta despues de descartarlo (localStorage)
+- En modo standalone no se muestra el prompt de instalacion
 
 ## Estructura
 

@@ -40,15 +40,20 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {
-            urlPattern: /^https?:\/\/localhost:8000\/api\//,
+            urlPattern: /\/api\/health$/,
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'api-cache',
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 300,
-              },
-              networkTimeoutSeconds: 5,
+              cacheName: 'health-cache',
+              expiration: { maxEntries: 1, maxAgeSeconds: 60 },
+              networkTimeoutSeconds: 3,
+            },
+          },
+          {
+            urlPattern: /\/api\/habit-library/,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'library-cache',
+              expiration: { maxEntries: 30, maxAgeSeconds: 3600 },
             },
           },
         ],

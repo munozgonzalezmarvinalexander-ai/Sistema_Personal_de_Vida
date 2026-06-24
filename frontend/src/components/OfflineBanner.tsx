@@ -2,9 +2,15 @@ import { useState, useEffect } from 'react';
 import { WifiOff } from 'lucide-react';
 
 export default function OfflineBanner() {
-  const [offline, setOffline] = useState(!navigator.onLine);
+  const [offline, setOffline] = useState(() => {
+    if (typeof navigator !== 'undefined' && 'onLine' in navigator) {
+      return !navigator.onLine;
+    }
+    return false;
+  });
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     const goOffline = () => setOffline(true);
     const goOnline = () => setOffline(false);
     window.addEventListener('offline', goOffline);
@@ -20,7 +26,10 @@ export default function OfflineBanner() {
   return (
     <div className="offline-banner">
       <WifiOff size={16} />
-      <span>Sin conexion. Algunas funciones requieren internet.</span>
+      <div className="offline-text">
+        <strong>Sin conexion</strong>
+        <span>Puedes ver la app, pero guardar datos requiere internet.</span>
+      </div>
     </div>
   );
 }
