@@ -1,0 +1,97 @@
+export interface User {
+  id: string;
+  email: string;
+  display_name: string;
+  created_at: string;
+}
+
+export interface TokenResponse {
+  access_token: string;
+  token_type: string;
+  user: User;
+}
+
+export interface Habit {
+  id: string;
+  user_id: string;
+  name: string;
+  category: string;
+  level_min: string;
+  level_normal: string;
+  level_ideal: string;
+  is_core: boolean;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface HabitCreate {
+  name: string;
+  category: string;
+  level_min: string;
+  level_normal: string;
+  level_ideal: string;
+  is_core: boolean;
+}
+
+export type LevelDone = 'none' | 'min' | 'normal' | 'ideal';
+
+export interface HabitLog {
+  id: string;
+  user_id: string;
+  habit_id: string;
+  log_date: string;
+  level_done: LevelDone | null;
+  completed: boolean;
+  points: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DailyCheckin {
+  id: string;
+  user_id: string;
+  checkin_date: string;
+  sleep_hours: number | null;
+  sleep_quality: number | null;
+  water_liters: number | null;
+  mood: number | null;
+  energy: number | null;
+  food_quality: number | null;
+  screen_hours: number | null;
+  spending: number | null;
+  university_study_minutes: number | null;
+  english_minutes: number | null;
+  programming_minutes: number | null;
+  reading_minutes: number | null;
+  meditation_minutes: number | null;
+  points: number;
+  note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface HabitReport {
+  habit_id: string;
+  name: string;
+  category: string;
+  days_completed: number;
+  total_points: number;
+}
+
+export interface WeeklyReport {
+  start_date: string;
+  end_date: string;
+  total_points: number;
+  days_logged: number;
+  avg_sleep: number | null;
+  avg_mood: number | null;
+  avg_energy: number | null;
+  total_study_minutes: number;
+  total_english_minutes: number;
+  total_programming_minutes: number;
+  total_reading_minutes: number;
+  total_meditation_minutes: number;
+  habits_most_completed: HabitReport[];
+  habits_least_completed: HabitReport[];
+}
