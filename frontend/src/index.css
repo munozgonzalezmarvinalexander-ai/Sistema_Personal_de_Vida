@@ -642,6 +642,91 @@ a:hover { text-decoration: underline; }
 
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 
+/* ============ LIBRARY ============ */
+.library-search {
+  display: flex; gap: 0.5rem; margin-bottom: 0.75rem;
+}
+.search-box {
+  flex: 1; display: flex; align-items: center; gap: 8px;
+  padding: 8px 14px; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); background: var(--bg-card);
+}
+.search-box input {
+  flex: 1; border: none; outline: none; font-size: 0.9rem;
+  background: transparent; color: var(--text);
+}
+.search-box svg { color: var(--text-light); flex-shrink: 0; }
+.filter-active { border-color: var(--primary); color: var(--primary); }
+
+.library-filters {
+  display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;
+  padding: 0.75rem; background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.filter-group { display: flex; flex-direction: column; gap: 4px; min-width: 120px; }
+.filter-group label { font-size: 0.75rem; font-weight: 500; color: var(--text-light); }
+.filter-group select {
+  padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px;
+  font-size: 0.85rem; background: var(--bg); color: var(--text);
+}
+
+.library-count { font-size: 0.8rem; color: var(--text-light); margin-bottom: 0.75rem; }
+
+.library-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.75rem;
+}
+.library-card { cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; position: relative; }
+.library-card:hover { border-color: var(--primary); box-shadow: var(--shadow-md); }
+
+.lib-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 0.5rem; }
+.lib-header h3 { margin: 0; font-size: 0.95rem; flex: 1; }
+
+.evidence-badge {
+  font-size: 0.65rem; font-weight: 600; padding: 2px 8px;
+  border-radius: 4px; white-space: nowrap;
+}
+.ev-science { background: rgba(34,197,94,0.12); color: #16a34a; }
+.ev-tradition { background: rgba(245,158,11,0.12); color: #d97706; }
+.ev-personal { background: rgba(99,102,241,0.12); color: #6366f1; }
+
+.lib-benefit { font-size: 0.85rem; color: var(--text); margin-bottom: 0.75rem; line-height: 1.4; }
+
+.lib-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.diff-badge {
+  font-size: 0.7rem; font-weight: 500; padding: 2px 6px; border-radius: 4px;
+}
+.diff-low { background: var(--success-bg); color: var(--success); }
+.diff-medium { background: var(--warning-bg); color: var(--warning); }
+.diff-high { background: var(--danger-bg); color: var(--danger); }
+.time-badge {
+  display: flex; align-items: center; gap: 3px;
+  font-size: 0.7rem; color: var(--text-light);
+}
+.lib-warning-hint {
+  position: absolute; top: 0.75rem; right: 0.75rem; color: var(--warning);
+}
+
+.library-detail { max-width: 560px; }
+.detail-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 1.25rem; }
+.detail-section { margin-bottom: 1rem; }
+.detail-section h4 {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.85rem; font-weight: 600; color: var(--text-heading);
+  margin-bottom: 4px;
+}
+.detail-section p { font-size: 0.9rem; color: var(--text); line-height: 1.5; }
+.detail-source { font-style: italic; color: var(--text-light); }
+
+.detail-warning {
+  display: flex; gap: 8px; padding: 0.75rem;
+  background: var(--warning-bg); border-radius: var(--radius-sm);
+  margin-bottom: 1rem;
+}
+.detail-warning svg { color: var(--warning); flex-shrink: 0; margin-top: 2px; }
+.detail-warning p { font-size: 0.85rem; color: var(--text); }
+
+.detail-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
 /* ============ UTILITIES ============ */
 .loading { text-align: center; color: var(--text-light); padding: 2rem; }
 .loading-screen {
@@ -667,4 +752,7 @@ a:hover { text-decoration: underline; }
   .streak-cards { grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
   .streak-value { font-size: 1.4rem; }
   .header-badges { flex-wrap: wrap; }
+  .library-grid { grid-template-columns: 1fr; }
+  .library-search { flex-direction: column; }
+  .library-filters { flex-direction: column; }
 }

@@ -158,3 +158,22 @@ export interface ExperimentCreate {
   duration_days: 7 | 14 | 30;
   start_date: string;
 }
+
+export type EvidenceType = 'science' | 'tradition' | 'personal';
+export type DifficultyLevel = 'low' | 'medium' | 'high';
+
+export interface HabitLibraryItem {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  benefit: string;
+  how_to_start: string;
+  difficulty: DifficultyLevel;
+  daily_minutes: number;
+  evidence_type: EvidenceType;
+  source: string | null;
+  warning: string | null;
+  active: boolean;
+  created_at: string;
+}
