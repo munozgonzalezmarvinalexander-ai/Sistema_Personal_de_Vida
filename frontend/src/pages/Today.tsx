@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api, { getErrorMessage } from '../api/client';
-import type { Habit, HabitLog, DailyCheckin, LevelDone, StreakResponse, UserProgress, RecalculateResult } from '../api/types';
+import type { Habit, HabitLog, DailyCheckin, LevelDone, StreakResponse, UserProgress, RecalculateResult, Insight } from '../api/types';
 import {
   Sun, Moon, Droplets, Brain, Zap, UtensilsCrossed,
   Smartphone, Wallet, BookOpen, Code, GraduationCap,
-  Languages, Heart, Save, Star, AlertCircle, CheckCircle, Loader2, Flame, Award
+  Languages, Heart, Save, Star, AlertCircle, CheckCircle, Loader2, Flame, Award, Lightbulb
 } from 'lucide-react';
 
 const LEVEL_LABELS: Record<LevelDone, string> = {
@@ -44,6 +44,7 @@ export default function Today() {
   const [checkin, setCheckin] = useState<DailyCheckin | null>(null);
   const [streak, setStreak] = useState<StreakResponse | null>(null);
   const [progress, setProgress] = useState<UserProgress | null>(null);
+  const [topInsight, setTopInsight] = useState<Insight | null>(null);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
@@ -85,6 +86,12 @@ export default function Today() {
       ]);
       setStreak(streakRes.data);
       setProgress(progressRes.data);
+      try {
+        const insRes = await api.get('/insights');
+        const highPrio = insRes.data.find((i: Insight) => i.priority === 'high');
+        const medPrio = insRes.data.find((i: Insight) => i.priority === 'medium');
+        setTopInsight(highPrio || medPrio || insRes.data[0] || null);
+      } catch { /* ignore */ }
       setHabits(habitsRes.data);
       const logsMap: Record<string, HabitLog> = {};
       for (const log of logsRes.data) {
@@ -294,6 +301,13 @@ export default function Today() {
         <div className="card checkin-done">
           <CheckCircle size={18} />
           <p>Check-in completado hoy.</p>
+        </div>
+      )}
+
+      {topInsight && (
+        <div className="card today-insight">
+          <Lightbulb size={16} />
+          <p><strong>{topInsight.title}:</strong> {topInsight.recommendation}</p>
         </div>
       )}
 

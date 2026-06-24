@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.database import SessionLocal
-from app.routers import auth, habits, habit_logs, checkins, reports, experiments, habit_library, gamification, reminders, export
+from app.routers import auth, habits, habit_logs, checkins, reports, experiments, habit_library, gamification, reminders, export, insights
 from app.seed_library import seed_library
 
 
@@ -43,6 +43,7 @@ app.include_router(habit_library.router, prefix="/api")
 app.include_router(gamification.router, prefix="/api")
 app.include_router(reminders.router, prefix="/api")
 app.include_router(export.router, prefix="/api")
+app.include_router(insights.router, prefix="/api")
 
 
 @app.get("/api/health")

@@ -235,3 +235,29 @@ export interface ReminderSettings {
   created_at: string;
   updated_at: string;
 }
+
+export interface Insight {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  recommendation: string;
+  category: string;
+  priority: 'low' | 'medium' | 'high';
+  confidence: 'low' | 'medium' | 'high';
+  period_days: number;
+  related_metric: string;
+  created_from: string;
+  action_label: string | null;
+  action_target: string | null;
+}
+
+export interface InsightSummary {
+  total: number;
+  high_priority: number;
+  medium_priority: number;
+  low_priority: number;
+  best_metric: string | null;
+  needs_attention: string | null;
+  general_message: string;
+}

@@ -15,6 +15,7 @@ import Library from './pages/Library';
 import Achievements from './pages/Achievements';
 import Reminders from './pages/Reminders';
 import Export from './pages/Export';
+import Insights from './pages/Insights';
 import type { ReactNode } from 'react';
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -50,6 +51,7 @@ export default function App() {
             <Route path="/achievements" element={<Achievements />} />
             <Route path="/reminders" element={<Reminders />} />
             <Route path="/export" element={<Export />} />
+            <Route path="/insights" element={<Insights />} />
             <Route path="/report" element={<WeeklyReport />} />
           </Route>
         </Routes>
