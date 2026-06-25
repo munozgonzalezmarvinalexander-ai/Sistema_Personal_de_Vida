@@ -25,3 +25,25 @@ class InsightSummaryOut(BaseModel):
     best_metric: str | None
     needs_attention: str | None
     general_message: str
+
+
+class CorrelationOut(BaseModel):
+    id: str
+    metric_x: str
+    metric_y: str
+    label_x: str
+    label_y: str
+    coefficient: float
+    strength: str
+    direction: str
+    sample_size: int
+    message: str
+    recommendation: str
+    confidence: str
+
+
+class CorrelationsResponse(BaseModel):
+    days: int
+    sample_size: int
+    correlations: list[CorrelationOut]
+    message: str

@@ -1049,6 +1049,66 @@ a:hover { text-decoration: underline; }
 .today-insight svg { color: var(--primary); flex-shrink: 0; margin-top: 2px; }
 .today-insight p { font-size: 0.85rem; color: var(--text); line-height: 1.4; }
 
+/* ============ CORRELATIONS ============ */
+.correlations-section { margin-top: 2rem; }
+.correlations-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 0.75rem; gap: 1rem;
+}
+.correlations-header h2 {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 1.1rem; margin: 0; color: var(--text-heading);
+}
+.corr-days-select {
+  padding: 6px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  font-size: 0.85rem; background: var(--bg-card); color: var(--text);
+}
+.corr-summary-msg { font-size: 0.85rem; color: var(--text-light); margin-bottom: 0.75rem; }
+.corr-hint { font-size: 0.8rem; color: var(--text-light); margin-top: 0.5rem; }
+.correlations-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.corr-card { border-left: 3px solid var(--primary); }
+.corr-card.corr-strong { border-left-color: var(--primary-dark); }
+.corr-card.corr-moderate { border-left-color: var(--primary-light); }
+
+.corr-card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 0.5rem; margin-bottom: 0.5rem; flex-wrap: wrap;
+}
+.corr-metrics { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.corr-metric-tag {
+  font-size: 0.8rem; font-weight: 600; color: var(--text-heading);
+  background: var(--primary-bg); padding: 3px 8px; border-radius: 4px;
+}
+.corr-dir-icon { flex-shrink: 0; }
+.corr-positive { color: var(--success); }
+.corr-negative { color: var(--danger); }
+.corr-strength-badge {
+  font-size: 0.7rem; font-weight: 600; padding: 2px 8px; border-radius: 4px;
+}
+.corr-strength-badge.corr-strong { background: var(--primary-bg); color: var(--primary-dark); }
+.corr-strength-badge.corr-moderate { background: rgba(99,102,241,0.05); color: var(--primary-light); }
+
+.corr-message {
+  display: flex; align-items: flex-start; gap: 6px;
+  font-size: 0.85rem; color: var(--text); line-height: 1.5; margin-bottom: 0.5rem;
+}
+.corr-message svg { flex-shrink: 0; margin-top: 2px; }
+.corr-recommendation {
+  font-size: 0.8rem; color: var(--text-light); line-height: 1.4;
+  font-style: italic; margin-bottom: 0.5rem;
+}
+.corr-meta {
+  display: flex; gap: 0.75rem; flex-wrap: wrap; font-size: 0.7rem; color: var(--text-light);
+}
+.corr-coeff { font-family: monospace; }
+.corr-sample, .corr-conf { font-size: 0.7rem; }
+
+@media (max-width: 480px) {
+  .correlations-header { flex-direction: column; align-items: flex-start; }
+  .corr-card-header { flex-direction: column; align-items: flex-start; }
+}
+
 /* ============ UTILITIES ============ */
 .loading { text-align: center; color: var(--text-light); padding: 2rem; }
 .loading-screen {

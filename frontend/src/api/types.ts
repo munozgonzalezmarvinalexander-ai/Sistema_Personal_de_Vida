@@ -261,3 +261,25 @@ export interface InsightSummary {
   needs_attention: string | null;
   general_message: string;
 }
+
+export interface Correlation {
+  id: string;
+  metric_x: string;
+  metric_y: string;
+  label_x: string;
+  label_y: string;
+  coefficient: number;
+  strength: 'weak' | 'moderate' | 'strong';
+  direction: 'positive' | 'negative';
+  sample_size: number;
+  message: string;
+  recommendation: string;
+  confidence: 'low' | 'medium' | 'high';
+}
+
+export interface CorrelationsResponse {
+  days: number;
+  sample_size: number;
+  correlations: Correlation[];
+  message: string;
+}

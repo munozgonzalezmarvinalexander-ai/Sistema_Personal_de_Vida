@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { getErrorMessage } from '../api/client';
-import type { Insight, InsightSummary } from '../api/types';
+import type { Insight, InsightSummary, CorrelationsResponse, Correlation } from '../api/types';
 import {
   Lightbulb, AlertTriangle, TrendingUp, ArrowRight,
-  AlertCircle, Loader2, Filter, Info
+  AlertCircle, Loader2, Filter, Info, TrendingDown,
+  ArrowUpRight, ArrowDownRight, BarChart3
 } from 'lucide-react';
 
 const PRIORITY_STYLES: Record<string, { cls: string; label: string }> = {
@@ -12,6 +13,19 @@ const PRIORITY_STYLES: Record<string, { cls: string; label: string }> = {
   medium: { cls: 'priority-medium', label: 'Media' },
   low: { cls: 'priority-low', label: 'Baja' },
 };
+
+const STRENGTH_LABELS: Record<string, string> = {
+  strong: 'Fuerte',
+  moderate: 'Moderada',
+};
+
+const CONFIDENCE_LABELS: Record<string, string> = {
+  high: 'Alta',
+  medium: 'Media',
+  low: 'Baja',
+};
+
+const DAYS_OPTIONS = [14, 30, 60, 90];
 
 const CATEGORIES = ['sueno', 'bienestar', 'salud', 'aprendizaje', 'habitos', 'experimentos', 'general'];
 
@@ -23,6 +37,11 @@ export default function Insights() {
   const [error, setError] = useState('');
   const [catFilter, setCatFilter] = useState('');
   const [prioFilter, setPrioFilter] = useState('');
+
+  const [corrData, setCorrData] = useState<CorrelationsResponse | null>(null);
+  const [corrDays, setCorrDays] = useState(30);
+  const [corrLoading, setCorrLoading] = useState(false);
+  const [corrError, setCorrError] = useState('');
 
   useEffect(() => {
     setLoading(true);
@@ -38,6 +57,15 @@ export default function Insights() {
       .catch((err) => setError(getErrorMessage(err)))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    setCorrLoading(true);
+    setCorrError('');
+    api.get(`/insights/correlations?days=${corrDays}`)
+      .then((res) => setCorrData(res.data))
+      .catch((err) => setCorrError(getErrorMessage(err)))
+      .finally(() => setCorrLoading(false));
+  }, [corrDays]);
 
   const filtered = insights.filter((i) => {
     if (catFilter && i.category !== catFilter) return false;
@@ -141,6 +169,94 @@ export default function Insights() {
           <p>No hay sugerencias con estos filtros. Registra mas dias para obtener insights.</p>
         </div>
       )}
+
+      <section className="correlations-section" data-testid="correlations-section">
+        <div className="correlations-header">
+          <h2><BarChart3 size={20} /> Patrones detectados</h2>
+          <select
+            className="corr-days-select"
+            value={corrDays}
+            onChange={(e) => setCorrDays(Number(e.target.value))}
+          >
+            {DAYS_OPTIONS.map((d) => (
+              <option key={d} value={d}>{d} dias</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="card insight-disclaimer">
+          <Info size={16} />
+          <p>Los patrones muestran relaciones observadas, no causalidad. No son consejo medico ni afirmaciones absolutas.</p>
+        </div>
+
+        {corrLoading && (
+          <div className="loading-state"><Loader2 size={22} className="spin" /> Calculando patrones...</div>
+        )}
+
+        {corrError && (
+          <div className="error-state"><AlertCircle size={22} /><p>{corrError}</p></div>
+        )}
+
+        {!corrLoading && !corrError && corrData && (
+          <>
+            {corrData.correlations.length === 0 ? (
+              <div className="card empty-state" data-testid="correlations-empty">
+                <BarChart3 size={32} />
+                <p>{corrData.message}</p>
+                {corrData.sample_size < 7 && (
+                  <p className="corr-hint">Necesitas mas registros para detectar patrones confiables.</p>
+                )}
+              </div>
+            ) : (
+              <>
+                <p className="corr-summary-msg">{corrData.message}</p>
+                <div className="correlations-list">
+                  {corrData.correlations.map((corr) => (
+                    <CorrelationCard key={corr.id} corr={corr} />
+                  ))}
+                </div>
+              </>
+            )}
+          </>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function CorrelationCard({ corr }: { corr: Correlation }) {
+  const isPositive = corr.direction === 'positive';
+  const DirectionIcon = isPositive ? ArrowUpRight : ArrowDownRight;
+  const TrendIcon = isPositive ? TrendingUp : TrendingDown;
+  const strengthCls = corr.strength === 'strong' ? 'corr-strong' : 'corr-moderate';
+
+  return (
+    <div className={`card corr-card ${strengthCls}`} data-testid="correlation-card">
+      <div className="corr-card-header">
+        <div className="corr-metrics">
+          <span className="corr-metric-tag">{corr.label_x}</span>
+          <DirectionIcon size={16} className={`corr-dir-icon ${isPositive ? 'corr-positive' : 'corr-negative'}`} />
+          <span className="corr-metric-tag">{corr.label_y}</span>
+        </div>
+        <span className={`corr-strength-badge ${strengthCls}`}>
+          {STRENGTH_LABELS[corr.strength]}
+        </span>
+      </div>
+
+      <p className="corr-message">
+        <TrendIcon size={14} className={isPositive ? 'corr-positive' : 'corr-negative'} />
+        {corr.message}
+      </p>
+
+      <p className="corr-recommendation">{corr.recommendation}</p>
+
+      <div className="corr-meta">
+        <span className="corr-coeff" title="Coeficiente de Pearson">
+          r = {corr.coefficient > 0 ? '+' : ''}{corr.coefficient}
+        </span>
+        <span className="corr-sample">{corr.sample_size} dias</span>
+        <span className="corr-conf">Confianza: {CONFIDENCE_LABELS[corr.confidence]}</span>
+      </div>
     </div>
   );
 }
