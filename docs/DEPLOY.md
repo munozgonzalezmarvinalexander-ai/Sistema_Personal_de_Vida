@@ -82,14 +82,36 @@ cat backup.sql | docker compose exec -T postgres psql -U rumbo_user rumbo_db
 
 ## Opcion 2: Render
 
-### Backend (Web Service)
+### Advertencia sobre PostgreSQL free en Render
+
+Render PostgreSQL free **expira y se borra a los 30 dias**. Sirve para probar el deploy, pero para uso personal real se recomienda:
+
+- **Render PostgreSQL pagado** ($7/mes) — la opcion mas simple si ya usas Render.
+- **Supabase** (free tier generoso) — PostgreSQL gestionado con 500 MB gratis.
+- **Neon** (free tier) — PostgreSQL serverless con 512 MB gratis y sin expiracion.
+
+Para usar una DB externa, configurar `DATABASE_URL` manualmente en las variables del backend en lugar de usar `fromDatabase` en render.yaml.
+
+### Deploy con Blueprint (recomendado)
+
+1. En Render Dashboard → **New** → **Blueprint**
+2. Conectar el repo `Sistema_Personal_de_Vida`
+3. Render detecta `render.yaml` y muestra 3 servicios: DB, API, frontend
+4. Configurar las variables `sync: false`:
+   - `BACKEND_CORS_ORIGINS`: `https://rumbo-frontend.onrender.com`
+   - `VITE_API_URL`: `https://rumbo-api.onrender.com/api`
+5. Click **Apply** — Render crea todo automaticamente
+
+### Deploy manual
+
+#### Backend (Web Service)
 1. Crear Web Service conectado al repo
 2. **Build Command:** `cd backend && pip install -r requirements.txt`
 3. **Start Command:** `cd backend && python -m alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 4. Agregar variables de entorno: `DATABASE_URL`, `SECRET_KEY`, `ENVIRONMENT=production`, `BACKEND_CORS_ORIGINS`
 5. Agregar PostgreSQL como servicio y conectar la `DATABASE_URL`
 
-### Frontend (Static Site)
+#### Frontend (Static Site)
 1. Crear Static Site conectado al repo
 2. **Build Command:** `cd frontend && npm ci && npm run build`
 3. **Publish Directory:** `frontend/dist`
@@ -225,6 +247,12 @@ curl -X POST https://tu-dominio.com/api/auth/register \
 - [ ] `SECRET_KEY` es unica y segura
 - [ ] `/docs` no es accesible (produccion)
 - [ ] HTTPS activo
-- [ ] Base de datos con backups
 - [ ] PWA instalable
 - [ ] Service worker cacheando assets
+
+### Base de datos
+
+- [ ] Si usas Render Postgres free: exportar respaldo antes de 30 dias (`GET /api/export/json`)
+- [ ] Si usas Render Postgres free: migrar a Postgres pagado, Supabase o Neon antes de que expire
+- [ ] Si usas DB pagada o externa: verificar que backups automaticos estan configurados
+- [ ] Probar restauracion de backup al menos una vez
