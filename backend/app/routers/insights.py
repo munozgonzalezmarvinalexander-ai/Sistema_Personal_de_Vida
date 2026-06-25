@@ -13,7 +13,10 @@ from app.models.habit import Habit
 from app.models.habit_log import HabitLog
 from app.models.experiment import Experiment
 from app.models.user import User
-from app.schemas.insight import InsightOut, InsightSummaryOut, CorrelationOut, CorrelationsResponse
+from app.schemas.insight import (
+    InsightOut, InsightSummaryOut, CorrelationOut, CorrelationsResponse,
+    CorrelationPointOut,
+)
 
 router = APIRouter(prefix="/insights", tags=["insights"])
 
@@ -270,7 +273,29 @@ RECOMMENDATIONS = {
     ("meditation_minutes", "energy"): "Observa si meditar regularmente coincide con mejor energia.",
 }
 
+LAG_POSITIVE_TEMPLATES = [
+    "Tu {y} del dia siguiente parece coincidir con mayor {x} el dia anterior.",
+    "Los dias despues de registrar mas {x}, tu {y} suele ser mas alta.",
+    "Tu {x} de un dia podria estar relacionado positivamente con tu {y} al dia siguiente.",
+]
+
+LAG_NEGATIVE_TEMPLATES = [
+    "Tu {y} del dia siguiente parece bajar cuando registras mas {x} el dia anterior.",
+    "Los dias despues de mas {x}, tu {y} suele ser menor.",
+    "Tu {x} de un dia podria estar relacionado negativamente con tu {y} al dia siguiente.",
+]
+
+LAG_RECOMMENDATIONS = {
+    ("sleep_hours", "energy"): "Observa si dormir mejor una noche se refleja en tu energia al dia siguiente.",
+    ("screen_hours", "sleep_quality"): "Reducir pantalla un dia podria mejorar tu calidad de sueno esa noche. Observa si se mantiene.",
+    ("meditation_minutes", "mood"): "La meditacion de hoy podria influir en tu animo de manana. Observa si es consistente.",
+    ("reading_minutes", "sleep_quality"): "Leer durante el dia podria estar relacionado con mejor sueno esa noche.",
+    ("programming_minutes", "points"): "Los dias despues de programar podrian sumar mas puntos. Observa si se mantiene.",
+}
+
 DEFAULT_RECOMMENDATION = "Observa este patron durante una semana mas para confirmar si se mantiene."
+
+DEFAULT_LAG_RECOMMENDATION = "Este patron compara el dia anterior con el dia siguiente. Observa si se mantiene durante mas tiempo."
 
 
 def _pearson(xs: list[float], ys: list[float]) -> float | None:
@@ -304,91 +329,168 @@ def _confidence(sample: int, strength: str) -> str:
     return "low"
 
 
-def _message(metric_x: str, metric_y: str, direction: str) -> str:
+def _message(metric_x: str, metric_y: str, direction: str, lag: int = 0) -> str:
     lx = METRIC_LABELS[metric_x].lower()
     ly = METRIC_LABELS[metric_y].lower()
-    templates = POSITIVE_TEMPLATES if direction == "positive" else NEGATIVE_TEMPLATES
+    if lag == 0:
+        templates = POSITIVE_TEMPLATES if direction == "positive" else NEGATIVE_TEMPLATES
+    else:
+        templates = LAG_POSITIVE_TEMPLATES if direction == "positive" else LAG_NEGATIVE_TEMPLATES
     idx = hash(metric_x + metric_y) % len(templates)
     return templates[idx].format(x=lx, y=ly)
 
 
-def _recommendation(metric_x: str, metric_y: str) -> str:
+def _recommendation(metric_x: str, metric_y: str, lag: int = 0) -> str:
     key = (metric_x, metric_y)
     rev = (metric_y, metric_x)
-    return RECOMMENDATIONS.get(key, RECOMMENDATIONS.get(rev, DEFAULT_RECOMMENDATION))
+    if lag == 0:
+        return RECOMMENDATIONS.get(key, RECOMMENDATIONS.get(rev, DEFAULT_RECOMMENDATION))
+    return LAG_RECOMMENDATIONS.get(key, LAG_RECOMMENDATIONS.get(rev, DEFAULT_LAG_RECOMMENDATION))
 
 
-def compute_correlations(db: Session, user_id: str, days: int) -> CorrelationsResponse:
+MAX_SCATTER_POINTS = 50
+
+
+def compute_correlations(db: Session, user_id: str, days: int, lag: int = 0) -> CorrelationsResponse:
     today = date.today()
-    start = today - timedelta(days=days - 1)
+    start = today - timedelta(days=days - 1 + lag)
     checkins = db.query(DailyCheckin).filter(
         DailyCheckin.user_id == user_id,
         DailyCheckin.checkin_date >= start,
         DailyCheckin.checkin_date <= today,
-    ).all()
+    ).order_by(DailyCheckin.checkin_date).all()
 
     if len(checkins) < 7:
+        msg = "Necesitas al menos 7 dias con datos para detectar patrones confiables."
+        if lag > 0:
+            msg = "Necesitas mas registros consecutivos para analizar patrones con retardo."
         return CorrelationsResponse(
             days=days, sample_size=len(checkins), correlations=[],
-            message="Necesitas al menos 7 dias con datos para detectar patrones confiables.",
+            message=msg, lag_days=lag,
         )
 
-    rows: dict[str, list[float | None]] = {m: [] for m in CORRELATION_METRICS}
-    for c in checkins:
-        for m in CORRELATION_METRICS:
-            rows[m].append(getattr(c, m, None))
+    if lag == 0:
+        rows: dict[str, list[tuple[date, float | None]]] = {m: [] for m in CORRELATION_METRICS}
+        for c in checkins:
+            for m in CORRELATION_METRICS:
+                rows[m].append((c.checkin_date, getattr(c, m, None)))
 
-    results: list[CorrelationOut] = []
-    seen: set[tuple[str, str]] = set()
+        results: list[CorrelationOut] = []
+        seen: set[tuple[str, str]] = set()
 
-    for i, mx in enumerate(CORRELATION_METRICS):
-        for my in CORRELATION_METRICS[i + 1:]:
-            if (mx, my) in seen:
-                continue
-            seen.add((mx, my))
+        for i, mx in enumerate(CORRELATION_METRICS):
+            for my in CORRELATION_METRICS[i + 1:]:
+                if (mx, my) in seen:
+                    continue
+                seen.add((mx, my))
 
-            pairs = [
-                (float(x), float(y))
-                for x, y in zip(rows[mx], rows[my])
-                if x is not None and y is not None
-            ]
-            if len(pairs) < 7:
-                continue
+                triples = [
+                    (dx, float(x), float(y))
+                    for (dx, x), (_, y) in zip(rows[mx], rows[my])
+                    if x is not None and y is not None
+                ]
+                if len(triples) < 7:
+                    continue
 
-            xs, ys = zip(*pairs)
-            r = _pearson(list(xs), list(ys))
-            if r is None:
-                continue
+                dates_list, xs, ys = zip(*triples)
+                r = _pearson(list(xs), list(ys))
+                if r is None:
+                    continue
 
-            s = _strength(r)
-            if s == "weak":
-                continue
+                s = _strength(r)
+                if s == "weak":
+                    continue
 
-            direction = "positive" if r > 0 else "negative"
-            conf = _confidence(len(pairs), s)
+                direction = "positive" if r > 0 else "negative"
+                conf = _confidence(len(triples), s)
 
-            results.append(CorrelationOut(
-                id=str(uuid.uuid4())[:8],
-                metric_x=mx, metric_y=my,
-                label_x=METRIC_LABELS[mx], label_y=METRIC_LABELS[my],
-                coefficient=round(r, 3),
-                strength=s, direction=direction,
-                sample_size=len(pairs),
-                message=_message(mx, my, direction),
-                recommendation=_recommendation(mx, my),
-                confidence=conf,
-            ))
+                points = [
+                    CorrelationPointOut(date=d.isoformat(), x=xv, y=yv)
+                    for d, xv, yv in triples[:MAX_SCATTER_POINTS]
+                ]
+
+                results.append(CorrelationOut(
+                    id=str(uuid.uuid4())[:8],
+                    metric_x=mx, metric_y=my,
+                    label_x=METRIC_LABELS[mx], label_y=METRIC_LABELS[my],
+                    coefficient=round(r, 3),
+                    strength=s, direction=direction,
+                    sample_size=len(triples),
+                    message=_message(mx, my, direction, lag=0),
+                    recommendation=_recommendation(mx, my, lag=0),
+                    confidence=conf,
+                    lag_days=0,
+                    data_points=points,
+                ))
+    else:
+        by_date: dict[date, DailyCheckin] = {c.checkin_date: c for c in checkins}
+        results = []
+        seen = set()
+
+        for i, mx in enumerate(CORRELATION_METRICS):
+            for my in CORRELATION_METRICS[i + 1:]:
+                if (mx, my) in seen:
+                    continue
+                seen.add((mx, my))
+
+                triples: list[tuple[date, float, float]] = []
+                for d, c in sorted(by_date.items()):
+                    next_d = d + timedelta(days=1)
+                    if next_d not in by_date:
+                        continue
+                    x_val = getattr(c, mx, None)
+                    y_val = getattr(by_date[next_d], my, None)
+                    if x_val is not None and y_val is not None:
+                        triples.append((d, float(x_val), float(y_val)))
+
+                if len(triples) < 7:
+                    continue
+
+                dates_list, xs, ys = zip(*triples)
+                r = _pearson(list(xs), list(ys))
+                if r is None:
+                    continue
+
+                s = _strength(r)
+                if s == "weak":
+                    continue
+
+                direction = "positive" if r > 0 else "negative"
+                conf = _confidence(len(triples), s)
+
+                points = [
+                    CorrelationPointOut(date=d.isoformat(), x=xv, y=yv)
+                    for d, xv, yv in triples[:MAX_SCATTER_POINTS]
+                ]
+
+                results.append(CorrelationOut(
+                    id=str(uuid.uuid4())[:8],
+                    metric_x=mx, metric_y=my,
+                    label_x=METRIC_LABELS[mx], label_y=METRIC_LABELS[my],
+                    coefficient=round(r, 3),
+                    strength=s, direction=direction,
+                    sample_size=len(triples),
+                    message=_message(mx, my, direction, lag=1),
+                    recommendation=_recommendation(mx, my, lag=1),
+                    confidence=conf,
+                    lag_days=1,
+                    data_points=points,
+                ))
 
     results.sort(key=lambda c: abs(c.coefficient), reverse=True)
 
     if results:
-        msg = f"Se encontraron {len(results)} patrones en tus ultimos {days} dias."
+        suffix = " (comparando el dia anterior con el dia siguiente)" if lag > 0 else ""
+        msg = f"Se encontraron {len(results)} patrones en tus ultimos {days} dias{suffix}."
     else:
-        msg = "No se detectaron patrones significativos en este periodo. Sigue registrando datos."
+        if lag > 0:
+            msg = "No se detectaron patrones con retardo en este periodo. Necesitas registros en dias consecutivos."
+        else:
+            msg = "No se detectaron patrones significativos en este periodo. Sigue registrando datos."
 
     return CorrelationsResponse(
         days=days, sample_size=len(checkins),
-        correlations=results, message=msg,
+        correlations=results, message=msg, lag_days=lag,
     )
 
 
@@ -411,10 +513,11 @@ def _correlation_insights(db: Session, user_id: str) -> list[InsightOut]:
 @router.get("/correlations", response_model=CorrelationsResponse)
 def get_correlations(
     days: int = Query(30, ge=14, le=90),
+    lag: int = Query(0, ge=0, le=1),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return compute_correlations(db, current_user.id, days)
+    return compute_correlations(db, current_user.id, days, lag=lag)
 
 
 @router.get("", response_model=list[InsightOut])

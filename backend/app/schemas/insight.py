@@ -27,6 +27,12 @@ class InsightSummaryOut(BaseModel):
     general_message: str
 
 
+class CorrelationPointOut(BaseModel):
+    date: str
+    x: float
+    y: float
+
+
 class CorrelationOut(BaseModel):
     id: str
     metric_x: str
@@ -40,6 +46,8 @@ class CorrelationOut(BaseModel):
     message: str
     recommendation: str
     confidence: str
+    lag_days: int = 0
+    data_points: list[CorrelationPointOut] = []
 
 
 class CorrelationsResponse(BaseModel):
@@ -47,3 +55,4 @@ class CorrelationsResponse(BaseModel):
     sample_size: int
     correlations: list[CorrelationOut]
     message: str
+    lag_days: int = 0

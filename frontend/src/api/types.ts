@@ -262,6 +262,12 @@ export interface InsightSummary {
   general_message: string;
 }
 
+export interface CorrelationPoint {
+  date: string;
+  x: number;
+  y: number;
+}
+
 export interface Correlation {
   id: string;
   metric_x: string;
@@ -275,6 +281,8 @@ export interface Correlation {
   message: string;
   recommendation: string;
   confidence: 'low' | 'medium' | 'high';
+  lag_days: number;
+  data_points: CorrelationPoint[];
 }
 
 export interface CorrelationsResponse {
@@ -282,4 +290,5 @@ export interface CorrelationsResponse {
   sample_size: number;
   correlations: Correlation[];
   message: string;
+  lag_days: number;
 }
