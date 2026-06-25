@@ -137,13 +137,18 @@ GitHub Actions ejecuta automaticamente en cada push/PR a main:
 
 ## Deploy
 
-Ver [docs/DEPLOY.md](docs/DEPLOY.md) para guias completas de deploy en:
-- Render (Blueprint con `render.yaml` incluido)
+**Deploy gratuito (recomendado para probar):** Ver [docs/DEPLOY_FREE.md](docs/DEPLOY_FREE.md)
+- Frontend en Vercel o Render Static Site (gratis)
+- Backend en Koyeb Free (gratis)
+- PostgreSQL en Neon o Supabase (gratis, sin expiracion)
+
+**Deploy con presupuesto:** Ver [docs/DEPLOY.md](docs/DEPLOY.md)
 - Docker Compose (VPS)
+- Render (requiere plan pagado para backend)
 - Railway
 - VPS manual con nginx
 
-**Nota sobre base de datos:** Render PostgreSQL free expira a los 30 dias. Para uso personal real se recomienda Render Postgres pagado ($7/mes), Supabase (free, 500 MB) o Neon (free, 512 MB).
+**Nota:** El `render.yaml` incluido solo despliega el frontend (static site gratuito). El backend y la base de datos se configuran por separado para evitar cobros.
 
 ## Variables de entorno
 
