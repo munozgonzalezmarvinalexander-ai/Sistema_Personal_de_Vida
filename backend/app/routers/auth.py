@@ -15,8 +15,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 def register(data: UserRegister, db: Session = Depends(get_db)):
     if db.query(User).filter(User.email == data.email).first():
         raise HTTPException(status_code=400, detail="El email ya esta registrado")
-    if len(data.password) < 6:
-        raise HTTPException(status_code=400, detail="La contrasena debe tener al menos 6 caracteres")
+    if len(data.password) < 8:
+        raise HTTPException(status_code=400, detail="La contrasena debe tener al menos 8 caracteres")
     user = User(
         email=data.email,
         password_hash=hash_password(data.password),

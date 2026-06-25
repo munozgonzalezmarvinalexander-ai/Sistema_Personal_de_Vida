@@ -1,3 +1,8 @@
+import os
+
+os.environ.setdefault("DATABASE_URL", "sqlite://")
+os.environ.setdefault("SECRET_KEY", "test-secret-key-for-pytest-only-not-production")
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine

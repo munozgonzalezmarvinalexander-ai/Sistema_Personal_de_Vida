@@ -16,7 +16,12 @@ frontend/dist/
 
 # Environment
 .env
+.env.local
+.env.production
 backend/.env
+frontend/.env
+frontend/.env.local
+frontend/.env.production
 
 # IDE
 .vscode/
