@@ -12,7 +12,7 @@ Sistema personal para registrar habitos, metricas diarias y progreso semanal.
 ## Requisitos
 
 - Python 3.12+
-- Node.js 18+
+- Node.js 22+
 - PostgreSQL 14+
 
 ## Setup
