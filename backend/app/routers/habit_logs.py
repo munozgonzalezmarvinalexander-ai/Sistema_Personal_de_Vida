@@ -9,6 +9,7 @@ from app.models.habit import Habit
 from app.models.habit_log import HabitLog
 from app.models.user import User
 from app.schemas.habit_log import HabitLogCreate, HabitLogUpdate, HabitLogOut, LEVEL_POINTS
+from app.services.points import sync_daily_checkin_points
 
 router = APIRouter(prefix="/habit-logs", tags=["habit-logs"])
 
@@ -55,6 +56,8 @@ def create_log(
         points=points,
     )
     db.add(log)
+    db.flush()
+    sync_daily_checkin_points(db, current_user.id, data.log_date)
     db.commit()
     db.refresh(log)
     return log
@@ -73,6 +76,27 @@ def update_log(
     log.level_done = data.level_done.value
     log.completed = data.level_done.value != "none"
     log.points = LEVEL_POINTS.get(data.level_done.value, 0)
+    db.flush()
+    sync_daily_checkin_points(db, current_user.id, log.log_date)
     db.commit()
     db.refresh(log)
     return log
+
+
+@router.delete("/{log_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_log(
+    log_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    log = db.query(HabitLog).filter(
+        HabitLog.id == log_id,
+        HabitLog.user_id == current_user.id,
+    ).first()
+    if not log:
+        raise HTTPException(status_code=404, detail="Registro no encontrado")
+    log_date = log.log_date
+    db.delete(log)
+    db.flush()
+    sync_daily_checkin_points(db, current_user.id, log_date)
+    db.commit()

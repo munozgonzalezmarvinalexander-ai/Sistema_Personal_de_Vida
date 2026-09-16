@@ -4,34 +4,33 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.dates import today_local
 from app.core.deps import get_current_user
 from app.models.daily_checkin import DailyCheckin
-from app.models.habit_log import HabitLog
 from app.models.user import User
 from app.schemas.daily_checkin import DailyCheckinCreate, DailyCheckinUpdate, DailyCheckinOut
+from app.services.points import daily_habit_points
 
 router = APIRouter(prefix="/checkins", tags=["checkins"])
 
 
 def _calc_points(checkin: DailyCheckin, db: Session) -> int:
-    habit_points = (
-        db.query(HabitLog)
-        .filter(HabitLog.user_id == checkin.user_id, HabitLog.log_date == checkin.checkin_date)
-        .with_entities(HabitLog.points)
-        .all()
-    )
-    return sum(p[0] for p in habit_points)
+    return daily_habit_points(db, checkin.user_id, checkin.checkin_date)
 
 
 @router.get("/today", response_model=DailyCheckinOut | None)
 def get_today(
+    checkin_date: date | None = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    today = date.today()
+    requested_date = checkin_date or today_local()
     return (
         db.query(DailyCheckin)
-        .filter(DailyCheckin.user_id == current_user.id, DailyCheckin.checkin_date == today)
+        .filter(
+            DailyCheckin.user_id == current_user.id,
+            DailyCheckin.checkin_date == requested_date,
+        )
         .first()
     )
 

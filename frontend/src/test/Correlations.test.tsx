@@ -16,6 +16,7 @@ let corrResponse = {
 };
 
 vi.mock('../api/client', () => ({
+  AUTH_EXPIRED_EVENT: 'rumbo:auth-expired',
   default: {
     get: vi.fn((url: string) => {
       if (url === '/insights') return Promise.resolve({

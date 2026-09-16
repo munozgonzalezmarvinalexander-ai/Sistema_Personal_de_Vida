@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api, { getErrorMessage } from '../api/client';
 import type { Experiment, ExperimentCreate, ExperimentDecision } from '../api/types';
+import { guatemalaDateString } from '../utils/date';
 import {
   Plus, X, FlaskConical, CheckCircle2, XCircle, Clock,
   Calendar, Target, AlertCircle, Loader2, Trash2
@@ -39,7 +40,7 @@ export default function Experiments() {
 
   const [form, setForm] = useState<ExperimentCreate>({
     title: '', hypothesis: '', metric_tracked: METRICS[0],
-    duration_days: 14, start_date: new Date().toISOString().split('T')[0],
+    duration_days: 14, start_date: guatemalaDateString(),
   });
 
   const [completeForm, setCompleteForm] = useState({ result: '', decision: 'adopt' as ExperimentDecision });
@@ -67,7 +68,7 @@ export default function Experiments() {
     try {
       await api.post('/experiments', form);
       setShowCreate(false);
-      setForm({ title: '', hypothesis: '', metric_tracked: METRICS[0], duration_days: 14, start_date: new Date().toISOString().split('T')[0] });
+      setForm({ title: '', hypothesis: '', metric_tracked: METRICS[0], duration_days: 14, start_date: guatemalaDateString() });
       loadExperiments();
     } catch (err) {
       setFormError(getErrorMessage(err));

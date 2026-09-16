@@ -1,10 +1,11 @@
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from app.core.database import get_db
+from app.core.dates import today_local
 from app.core.deps import get_current_user
 from app.models.achievement import Achievement
 from app.models.daily_checkin import DailyCheckin
@@ -16,48 +17,20 @@ from app.schemas.gamification import (
     UserProgressOut, AchievementsListOut, AchievementOut,
     AchievementDefinition, RecalculateOut, calc_level,
 )
+from app.seed import DEFAULT_HABITS
+from app.services.achievements import ACHIEVEMENT_DEFS, unlock_achievement
 
 router = APIRouter(prefix="/gamification", tags=["gamification"])
 
-ACHIEVEMENT_DEFS = [
-    {"code": "first_checkin", "title": "Primer registro", "description": "Completaste tu primer check-in diario.", "icon": "calendar-check", "category": "inicio"},
-    {"code": "three_day_return", "title": "Volviste al camino", "description": "Registraste actividad despues de un dia sin registro.", "icon": "rotate-ccw", "category": "constancia"},
-    {"code": "seven_checkins", "title": "Primera semana consciente", "description": "Completaste 7 check-ins.", "icon": "calendar", "category": "constancia"},
-    {"code": "habit_creator", "title": "Disenador de habitos", "description": "Creaste tu primer habito personalizado.", "icon": "pencil", "category": "inicio"},
-    {"code": "experiment_started", "title": "Mentalidad experimental", "description": "Creaste tu primer experimento personal.", "icon": "flask-conical", "category": "aprendizaje"},
-    {"code": "experiment_completed", "title": "Aprendiste con datos", "description": "Completaste tu primer experimento.", "icon": "check-circle", "category": "aprendizaje"},
-    {"code": "library_used", "title": "Explorador de practicas", "description": "Creaste un habito o experimento desde la Biblioteca.", "icon": "book-marked", "category": "aprendizaje"},
-    {"code": "streak_7", "title": "Constancia flexible", "description": "Alcanzaste una racha de 7 dias.", "icon": "flame", "category": "constancia"},
-    {"code": "hundred_points", "title": "100 puntos de progreso", "description": "Acumulaste 100 puntos en total.", "icon": "star", "category": "progreso"},
-    {"code": "balanced_day", "title": "Dia equilibrado", "description": "Registraste sueno, agua, animo, energia y al menos un habito en un dia.", "icon": "scale", "category": "bienestar"},
-]
-
-ACHIEVEMENT_MAP = {a["code"]: a for a in ACHIEVEMENT_DEFS}
-
-
-def _unlock(db: Session, user_id: str, code: str) -> str | None:
-    existing = db.query(Achievement).filter(
-        Achievement.user_id == user_id, Achievement.code == code
-    ).first()
-    if existing:
-        return None
-    defn = ACHIEVEMENT_MAP[code]
-    db.add(Achievement(
-        user_id=user_id, code=code, title=defn["title"],
-        description=defn["description"], icon=defn["icon"], category=defn["category"],
-    ))
-    return code
-
-
 def _get_total_points(db: Session, user_id: str) -> int:
-    result = db.query(func.sum(DailyCheckin.points)).filter(
-        DailyCheckin.user_id == user_id
+    result = db.query(func.sum(HabitLog.points)).filter(
+        HabitLog.user_id == user_id
     ).scalar()
     return int(result or 0)
 
 
 def _calc_best_streak(db: Session, user_id: str) -> int:
-    end = date.today()
+    end = today_local()
     start = end - timedelta(days=89)
     checkin_dates = set(
         row[0] for row in
@@ -98,12 +71,12 @@ def recalculate_achievements(db: Session, user_id: str) -> list[str]:
     ).scalar() or 0
 
     if checkin_count >= 1:
-        r = _unlock(db, user_id, "first_checkin")
+        r = unlock_achievement(db, user_id, "first_checkin")
         if r:
             new_codes.append(r)
 
     if checkin_count >= 7:
-        r = _unlock(db, user_id, "seven_checkins")
+        r = unlock_achievement(db, user_id, "seven_checkins")
         if r:
             new_codes.append(r)
 
@@ -116,21 +89,24 @@ def recalculate_achievements(db: Session, user_id: str) -> list[str]:
     if len(checkin_dates) >= 2:
         for i in range(1, len(checkin_dates)):
             if (checkin_dates[i] - checkin_dates[i - 1]).days >= 2:
-                r = _unlock(db, user_id, "three_day_return")
+                r = unlock_achievement(db, user_id, "three_day_return")
                 if r:
                     new_codes.append(r)
                 break
 
-    seed_count = 8
-    habit_count = db.query(func.count(Habit.id)).filter(Habit.user_id == user_id).scalar() or 0
-    if habit_count > seed_count:
-        r = _unlock(db, user_id, "habit_creator")
+    default_names = {habit["name"] for habit in DEFAULT_HABITS}
+    custom_habit = db.query(Habit.id).filter(
+        Habit.user_id == user_id,
+        Habit.name.notin_(default_names),
+    ).first()
+    if custom_habit:
+        r = unlock_achievement(db, user_id, "habit_creator")
         if r:
             new_codes.append(r)
 
     exp_total = db.query(func.count(Experiment.id)).filter(Experiment.user_id == user_id).scalar() or 0
     if exp_total >= 1:
-        r = _unlock(db, user_id, "experiment_started")
+        r = unlock_achievement(db, user_id, "experiment_started")
         if r:
             new_codes.append(r)
 
@@ -138,19 +114,19 @@ def recalculate_achievements(db: Session, user_id: str) -> list[str]:
         Experiment.user_id == user_id, Experiment.status == "completed"
     ).scalar() or 0
     if exp_completed >= 1:
-        r = _unlock(db, user_id, "experiment_completed")
+        r = unlock_achievement(db, user_id, "experiment_completed")
         if r:
             new_codes.append(r)
 
     total_points = _get_total_points(db, user_id)
     if total_points >= 100:
-        r = _unlock(db, user_id, "hundred_points")
+        r = unlock_achievement(db, user_id, "hundred_points")
         if r:
             new_codes.append(r)
 
     best_streak = _calc_best_streak(db, user_id)
     if best_streak >= 7:
-        r = _unlock(db, user_id, "streak_7")
+        r = unlock_achievement(db, user_id, "streak_7")
         if r:
             new_codes.append(r)
 
@@ -168,13 +144,11 @@ def recalculate_achievements(db: Session, user_id: str) -> list[str]:
             HabitLog.completed.is_(True),
         ).first()
         if has_habit:
-            r = _unlock(db, user_id, "balanced_day")
+            r = unlock_achievement(db, user_id, "balanced_day")
             if r:
                 new_codes.append(r)
             break
 
-    if new_codes:
-        db.commit()
     return new_codes
 
 
@@ -221,5 +195,6 @@ def recalculate(
     db: Session = Depends(get_db),
 ):
     new_codes = recalculate_achievements(db, current_user.id)
+    db.commit()
     total = db.query(func.count(Achievement.id)).filter(Achievement.user_id == current_user.id).scalar() or 0
     return RecalculateOut(new_achievements=new_codes, total_achievements=total)

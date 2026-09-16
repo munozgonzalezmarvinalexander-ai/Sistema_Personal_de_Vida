@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.dates import today_local
 from app.core.deps import get_current_user
 from app.models.user import User
 from app.models.habit import Habit
@@ -21,7 +22,7 @@ router = APIRouter(prefix="/export", tags=["export"])
 
 
 def _today_str() -> str:
-    return date.today().isoformat()
+    return today_local().isoformat()
 
 
 def _to_dict(obj, exclude: set[str] | None = None) -> dict:

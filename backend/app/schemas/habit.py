@@ -1,15 +1,30 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
+
+
+TEXT_FIELDS = ("name", "category", "level_min", "level_normal", "level_ideal")
+
+
+def _strip_required(value: str | None) -> str:
+    if value is None:
+        raise ValueError("El valor no puede ser nulo")
+    value = value.strip()
+    if not value:
+        raise ValueError("El texto no puede estar vacio")
+    return value
 
 
 class HabitCreate(BaseModel):
-    name: str
-    category: str
-    level_min: str
-    level_normal: str
-    level_ideal: str
+    name: str = Field(..., max_length=100)
+    category: str = Field(..., max_length=50)
+    level_min: str = Field(..., max_length=500)
+    level_normal: str = Field(..., max_length=500)
+    level_ideal: str = Field(..., max_length=500)
     is_core: bool = False
+    library_item_id: str | None = None
+
+    _required_text = field_validator(*TEXT_FIELDS, mode="before")(_strip_required)
 
 
 class HabitUpdate(BaseModel):
@@ -20,6 +35,8 @@ class HabitUpdate(BaseModel):
     level_ideal: str | None = None
     is_core: bool | None = None
     active: bool | None = None
+
+    _required_text = field_validator(*TEXT_FIELDS, mode="before")(_strip_required)
 
 
 class HabitOut(BaseModel):

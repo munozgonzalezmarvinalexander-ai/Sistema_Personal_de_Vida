@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { getErrorMessage } from '../api/client';
 import type { HabitLibraryItem, EvidenceType, DifficultyLevel, Habit, Experiment } from '../api/types';
+import { guatemalaDateString } from '../utils/date';
 import {
   Search, BookMarked, X, Clock, AlertTriangle, ExternalLink, Info,
   Plus, FlaskConical, AlertCircle, Loader2, Filter, CheckCircle
@@ -42,17 +43,23 @@ export default function Library() {
   };
 
   useEffect(() => {
-    setLoading(true);
-    setError('');
-    const params: Record<string, string> = {};
-    if (catFilter) params.category = catFilter;
-    if (evFilter) params.evidence_type = evFilter;
-    if (diffFilter) params.difficulty = diffFilter;
-    if (search.trim()) params.search = search.trim();
-    api.get('/habit-library', { params })
-      .then((res) => setItems(res.data))
-      .catch((err) => setError(getErrorMessage(err)))
-      .finally(() => setLoading(false));
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      setLoading(true);
+      setError('');
+      const params: Record<string, string> = {};
+      if (catFilter) params.category = catFilter;
+      if (evFilter) params.evidence_type = evFilter;
+      if (diffFilter) params.difficulty = diffFilter;
+      if (search.trim()) params.search = search.trim();
+      api.get('/habit-library', { params, signal: controller.signal })
+        .then((res) => setItems(res.data))
+        .catch((err) => {
+          if ((err as { code?: string }).code !== 'ERR_CANCELED') setError(getErrorMessage(err));
+        })
+        .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    }, 250);
+    return () => { window.clearTimeout(timer); controller.abort(); };
   }, [catFilter, evFilter, diffFilter, search]);
 
   const handleCreateHabit = async (item: HabitLibraryItem) => {
@@ -73,6 +80,7 @@ export default function Library() {
         level_normal: `${mins} min - practica estandar`,
         level_ideal: `${Math.round(mins * 1.5)} min - version completa`,
         is_core: false,
+        library_item_id: item.id,
       });
       showToast('success', `Habito "${item.name}" creado`);
       setDetail(null);
@@ -92,7 +100,7 @@ export default function Library() {
         showToast('error', `Ya tienes un experimento activo con ese titulo`);
         return;
       }
-      const today = new Date().toISOString().split('T')[0];
+      const today = guatemalaDateString();
       const firstBenefit = item.benefit.split(',')[0].toLowerCase().trim();
       await api.post('/experiments', {
         title: item.name,
@@ -101,6 +109,7 @@ export default function Library() {
         metric_tracked: item.benefit.split(',')[0].trim(),
         duration_days: 14,
         start_date: today,
+        library_item_id: item.id,
       });
       showToast('success', `Experimento "${item.name}" creado (14 dias)`);
       setDetail(null);

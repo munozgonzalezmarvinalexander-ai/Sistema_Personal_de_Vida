@@ -28,12 +28,14 @@ def test_no_duplicate_achievements(auth_client):
 
 
 def test_habit_creator_achievement(auth_client):
-    auth_client.post("/api/habits", json={
+    created = auth_client.post("/api/habits", json={
         "name": "Custom", "category": "otro",
         "level_min": "1", "level_normal": "2", "level_ideal": "3", "is_core": False,
     })
-    res = auth_client.post("/api/gamification/recalculate")
-    assert "habit_creator" in res.json()["new_achievements"]
+    assert created.status_code == 201
+    res = auth_client.get("/api/gamification/achievements")
+    codes = {achievement["code"] for achievement in res.json()["unlocked"]}
+    assert "habit_creator" in codes
 
 
 def test_achievements_list(auth_client):

@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api, { getErrorMessage } from '../api/client';
 import type { Habit, HabitLog, DailyCheckin, LevelDone, StreakResponse, UserProgress, RecalculateResult, Insight } from '../api/types';
+import { formatGuatemalaDate, guatemalaDateString } from '../utils/date';
 import {
   Sun, Moon, Droplets, Brain, Zap, UtensilsCrossed,
   Smartphone, Wallet, BookOpen, Code, GraduationCap,
@@ -26,7 +27,14 @@ const LEVEL_POINTS: Record<LevelDone, number> = {
   none: 0, min: 1, normal: 2, ideal: 3,
 };
 
-const todayStr = () => new Date().toISOString().split('T')[0];
+const EMPTY_METRICS = {
+  sleep_hours: '', sleep_quality: '', water_liters: '', mood: '', energy: '',
+  food_quality: '', screen_hours: '', spending: '', university_study_minutes: '',
+  english_minutes: '', programming_minutes: '', reading_minutes: '',
+  meditation_minutes: '', note: '',
+};
+
+type Metrics = typeof EMPTY_METRICS;
 
 function clampNum(val: string, min: number, max: number, step: number): string {
   if (val === '') return '';
@@ -39,6 +47,7 @@ function clampNum(val: string, min: number, max: number, step: number): string {
 
 export default function Today() {
   const { user } = useAuth();
+  const [activeDate, setActiveDate] = useState(guatemalaDateString);
   const [habits, setHabits] = useState<Habit[]>([]);
   const [logs, setLogs] = useState<Record<string, HabitLog>>({});
   const [checkin, setCheckin] = useState<DailyCheckin | null>(null);
@@ -49,58 +58,64 @@ export default function Today() {
   const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
   const [pageError, setPageError] = useState('');
+  const [optionalError, setOptionalError] = useState('');
+  const [dirty, setDirty] = useState(false);
+  const [dayChanged, setDayChanged] = useState(false);
+  const requestSequence = useRef(0);
 
-  const [metrics, setMetrics] = useState({
-    sleep_hours: '',
-    sleep_quality: '',
-    water_liters: '',
-    mood: '',
-    energy: '',
-    food_quality: '',
-    screen_hours: '',
-    spending: '',
-    university_study_minutes: '',
-    english_minutes: '',
-    programming_minutes: '',
-    reading_minutes: '',
-    meditation_minutes: '',
-    note: '',
-  });
+  const [metrics, setMetrics] = useState<Metrics>(EMPTY_METRICS);
+
+  const draftKey = `rumbo_checkin_draft_${user?.id || 'anonymous'}_${activeDate}`;
+  const updateMetrics = (updates: Partial<Metrics>) => {
+    setMetrics((current) => ({ ...current, ...updates }));
+    setDirty(true);
+  };
 
   const showToast = (type: 'success' | 'error', msg: string) => {
     setToast({ type, msg });
     setTimeout(() => setToast(null), 3000);
   };
 
+  const loadOptionalData = useCallback(async (sequence: number) => {
+    setOptionalError('');
+    const results = await Promise.allSettled([
+      api.get('/reports/streaks'),
+      api.get('/gamification/progress'),
+      api.get('/insights'),
+    ]);
+    if (sequence !== requestSequence.current) return;
+    if (results[0].status === 'fulfilled') setStreak(results[0].value.data);
+    if (results[1].status === 'fulfilled') setProgress(results[1].value.data);
+    if (results[2].status === 'fulfilled') {
+      const insights = results[2].value.data as Insight[];
+      setTopInsight(insights.find((i) => i.priority === 'high') || insights.find((i) => i.priority === 'medium') || insights[0] || null);
+    }
+    if (results.some((result) => result.status === 'rejected')) {
+      setOptionalError('Algunos resúmenes no se pudieron actualizar. Tus datos del día siguen disponibles.');
+    }
+  }, []);
+
   const loadData = useCallback(async () => {
+    const sequence = ++requestSequence.current;
     setPageLoading(true);
     setPageError('');
     try {
-      const date = todayStr();
-      const [habitsRes, logsRes, checkinRes, streakRes, progressRes] = await Promise.all([
+      const [habitsRes, logsRes, checkinRes] = await Promise.all([
         api.get('/habits', { params: { active_only: true } }),
-        api.get('/habit-logs', { params: { log_date: date } }),
-        api.get('/checkins/today'),
-        api.get('/reports/streaks'),
-        api.get('/gamification/progress'),
+        api.get('/habit-logs', { params: { log_date: activeDate } }),
+        api.get('/checkins/today', { params: { checkin_date: activeDate } }),
       ]);
-      setStreak(streakRes.data);
-      setProgress(progressRes.data);
-      try {
-        const insRes = await api.get('/insights');
-        const highPrio = insRes.data.find((i: Insight) => i.priority === 'high');
-        const medPrio = insRes.data.find((i: Insight) => i.priority === 'medium');
-        setTopInsight(highPrio || medPrio || insRes.data[0] || null);
-      } catch { /* ignore */ }
+      if (sequence !== requestSequence.current) return;
       setHabits(habitsRes.data);
       const logsMap: Record<string, HabitLog> = {};
       for (const log of logsRes.data) {
         logsMap[log.habit_id] = log;
       }
       setLogs(logsMap);
+      setCheckin(checkinRes.data || null);
+      let loadedMetrics: Metrics = { ...EMPTY_METRICS };
       if (checkinRes.data) {
-        setCheckin(checkinRes.data);
-        setMetrics({
+        loadedMetrics = {
           sleep_hours: checkinRes.data.sleep_hours?.toString() ?? '',
           sleep_quality: checkinRes.data.sleep_quality?.toString() ?? '',
           water_liters: checkinRes.data.water_liters?.toString() ?? '',
@@ -115,16 +130,43 @@ export default function Today() {
           reading_minutes: checkinRes.data.reading_minutes?.toString() ?? '',
           meditation_minutes: checkinRes.data.meditation_minutes?.toString() ?? '',
           note: checkinRes.data.note ?? '',
-        });
+        };
       }
+      const savedDraft = localStorage.getItem(draftKey);
+      if (savedDraft) {
+        try { loadedMetrics = { ...loadedMetrics, ...JSON.parse(savedDraft) }; setDirty(true); }
+        catch { localStorage.removeItem(draftKey); setDirty(false); }
+      } else setDirty(false);
+      setMetrics(loadedMetrics);
+      void loadOptionalData(sequence);
     } catch (err) {
       setPageError(getErrorMessage(err));
     } finally {
       setPageLoading(false);
     }
-  }, []);
+  }, [activeDate, draftKey, loadOptionalData]);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  useEffect(() => {
+    if (dirty) localStorage.setItem(draftKey, JSON.stringify(metrics));
+  }, [dirty, draftKey, metrics]);
+
+  useEffect(() => {
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!dirty) return;
+      event.preventDefault();
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [dirty]);
+
+  useEffect(() => {
+    const checkDate = () => setDayChanged(guatemalaDateString() !== activeDate);
+    checkDate();
+    const interval = window.setInterval(checkDate, 60_000);
+    return () => window.clearInterval(interval);
+  }, [activeDate]);
 
   const handleLevel = async (habitId: string, level: LevelDone) => {
     try {
@@ -135,7 +177,7 @@ export default function Today() {
       } else {
         const res = await api.post('/habit-logs', {
           habit_id: habitId,
-          log_date: todayStr(),
+          log_date: activeDate,
           level_done: level,
         });
         setLogs((prev) => ({ ...prev, [habitId]: res.data }));
@@ -170,7 +212,7 @@ export default function Today() {
     }
     setSaving(true);
     try {
-      const payload: Record<string, unknown> = { checkin_date: todayStr() };
+      const payload: Record<string, unknown> = { checkin_date: activeDate };
       const numFields = [
         'sleep_hours', 'sleep_quality', 'water_liters', 'mood', 'energy',
         'food_quality', 'screen_hours', 'spending', 'university_study_minutes',
@@ -180,6 +222,8 @@ export default function Today() {
         const val = metrics[f as keyof typeof metrics];
         payload[f] = val !== '' ? Number(val) : null;
       }
+      localStorage.removeItem(draftKey);
+      setDirty(false);
       payload.note = metrics.note || null;
 
       if (checkin) {
@@ -210,7 +254,7 @@ export default function Today() {
   const completedCount = Object.values(logs).filter((l) => l.level_done !== 'none').length;
 
   const formatDate = () => {
-    return new Date().toLocaleDateString('es-GT', {
+    return formatGuatemalaDate(activeDate, {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
   };
@@ -248,6 +292,18 @@ export default function Today() {
         <div className={`toast toast-${toast.type}`}>
           {toast.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
           {toast.msg}
+        </div>
+      )}
+
+      {dayChanged && (
+        <div className="card checkin-reminder day-rollover-warning">
+          <AlertCircle size={18} />
+          <p>Empezó un nuevo día. Este formulario sigue guardando el {activeDate} para no mezclar registros.</p>
+          <button className="btn btn-secondary btn-sm" onClick={() => {
+            if (dirty) { showToast('error', 'Guarda este borrador antes de cambiar de día.'); return; }
+            setActiveDate(guatemalaDateString());
+            setDayChanged(false);
+          }}>Ir al día actual</button>
         </div>
       )}
 
@@ -310,6 +366,9 @@ export default function Today() {
           <p><strong>{topInsight.title}:</strong> {topInsight.recommendation}</p>
         </div>
       )}
+      {optionalError && (
+        <div className="error-msg"><AlertCircle size={16} /> {optionalError} <button className="btn btn-secondary btn-sm" onClick={() => void loadOptionalData(requestSequence.current)}>Reintentar resúmenes</button></div>
+      )}
 
       <section className="card habits-section">
         <h2>Habitos del dia</h2>
@@ -368,8 +427,8 @@ export default function Today() {
               <label><Moon size={16} /> Horas de sueno</label>
               <input type="number" step="0.5" min="0" max="24" inputMode="decimal"
                 value={metrics.sleep_hours}
-                onChange={(e) => setMetrics({ ...metrics, sleep_hours: e.target.value })}
-                onBlur={(e) => setMetrics({ ...metrics, sleep_hours: clampNum(e.target.value, 0, 24, 0.5) })}
+                onChange={(e) => updateMetrics({ sleep_hours: e.target.value })}
+                onBlur={(e) => updateMetrics({ sleep_hours: clampNum(e.target.value, 0, 24, 0.5) })}
                 placeholder="7.5"
               />
             </div>
@@ -379,7 +438,7 @@ export default function Today() {
                 {[1,2,3,4,5].map((v) => (
                   <button key={v} type="button"
                     className={`rating-btn ${metrics.sleep_quality === String(v) ? 'active' : ''}`}
-                    onClick={() => setMetrics({ ...metrics, sleep_quality: String(v) })}
+                    onClick={() => updateMetrics({ sleep_quality: String(v) })}
                   >{v}</button>
                 ))}
               </div>
@@ -388,8 +447,8 @@ export default function Today() {
               <label><Droplets size={16} /> Agua (litros)</label>
               <input type="number" step="0.5" min="0" max="15" inputMode="decimal"
                 value={metrics.water_liters}
-                onChange={(e) => setMetrics({ ...metrics, water_liters: e.target.value })}
-                onBlur={(e) => setMetrics({ ...metrics, water_liters: clampNum(e.target.value, 0, 15, 0.5) })}
+                onChange={(e) => updateMetrics({ water_liters: e.target.value })}
+                onBlur={(e) => updateMetrics({ water_liters: clampNum(e.target.value, 0, 15, 0.5) })}
                 placeholder="2.5"
               />
             </div>
@@ -399,7 +458,7 @@ export default function Today() {
                 {[1,2,3,4,5].map((v) => (
                   <button key={v} type="button"
                     className={`rating-btn ${metrics.mood === String(v) ? 'active' : ''}`}
-                    onClick={() => setMetrics({ ...metrics, mood: String(v) })}
+                    onClick={() => updateMetrics({ mood: String(v) })}
                   >{v}</button>
                 ))}
               </div>
@@ -410,7 +469,7 @@ export default function Today() {
                 {[1,2,3,4,5].map((v) => (
                   <button key={v} type="button"
                     className={`rating-btn ${metrics.energy === String(v) ? 'active' : ''}`}
-                    onClick={() => setMetrics({ ...metrics, energy: String(v) })}
+                    onClick={() => updateMetrics({ energy: String(v) })}
                   >{v}</button>
                 ))}
               </div>
@@ -421,7 +480,7 @@ export default function Today() {
                 {[1,2,3,4,5].map((v) => (
                   <button key={v} type="button"
                     className={`rating-btn ${metrics.food_quality === String(v) ? 'active' : ''}`}
-                    onClick={() => setMetrics({ ...metrics, food_quality: String(v) })}
+                    onClick={() => updateMetrics({ food_quality: String(v) })}
                   >{v}</button>
                 ))}
               </div>
@@ -436,8 +495,8 @@ export default function Today() {
               <label><GraduationCap size={16} /> Estudio U</label>
               <input type="number" min="0" inputMode="numeric"
                 value={metrics.university_study_minutes}
-                onChange={(e) => setMetrics({ ...metrics, university_study_minutes: e.target.value })}
-                onBlur={(e) => setMetrics({ ...metrics, university_study_minutes: clampNum(e.target.value, 0, 1440, 1) })}
+                onChange={(e) => updateMetrics({ university_study_minutes: e.target.value })}
+                onBlur={(e) => updateMetrics({ university_study_minutes: clampNum(e.target.value, 0, 1440, 1) })}
                 placeholder="45"
               />
             </div>
@@ -445,8 +504,8 @@ export default function Today() {
               <label><Languages size={16} /> Ingles</label>
               <input type="number" min="0" inputMode="numeric"
                 value={metrics.english_minutes}
-                onChange={(e) => setMetrics({ ...metrics, english_minutes: e.target.value })}
-                onBlur={(e) => setMetrics({ ...metrics, english_minutes: clampNum(e.target.value, 0, 1440, 1) })}
+                onChange={(e) => updateMetrics({ english_minutes: e.target.value })}
+                onBlur={(e) => updateMetrics({ english_minutes: clampNum(e.target.value, 0, 1440, 1) })}
                 placeholder="20"
               />
             </div>
@@ -454,8 +513,8 @@ export default function Today() {
               <label><Code size={16} /> Programacion</label>
               <input type="number" min="0" inputMode="numeric"
                 value={metrics.programming_minutes}
-                onChange={(e) => setMetrics({ ...metrics, programming_minutes: e.target.value })}
-                onBlur={(e) => setMetrics({ ...metrics, programming_minutes: clampNum(e.target.value, 0, 1440, 1) })}
+                onChange={(e) => updateMetrics({ programming_minutes: e.target.value })}
+                onBlur={(e) => updateMetrics({ programming_minutes: clampNum(e.target.value, 0, 1440, 1) })}
                 placeholder="30"
               />
             </div>
@@ -463,8 +522,8 @@ export default function Today() {
               <label><BookOpen size={16} /> Lectura</label>
               <input type="number" min="0" inputMode="numeric"
                 value={metrics.reading_minutes}
-                onChange={(e) => setMetrics({ ...metrics, reading_minutes: e.target.value })}
-                onBlur={(e) => setMetrics({ ...metrics, reading_minutes: clampNum(e.target.value, 0, 1440, 1) })}
+                onChange={(e) => updateMetrics({ reading_minutes: e.target.value })}
+                onBlur={(e) => updateMetrics({ reading_minutes: clampNum(e.target.value, 0, 1440, 1) })}
                 placeholder="15"
               />
             </div>
@@ -472,8 +531,8 @@ export default function Today() {
               <label><Brain size={16} /> Meditacion</label>
               <input type="number" min="0" inputMode="numeric"
                 value={metrics.meditation_minutes}
-                onChange={(e) => setMetrics({ ...metrics, meditation_minutes: e.target.value })}
-                onBlur={(e) => setMetrics({ ...metrics, meditation_minutes: clampNum(e.target.value, 0, 1440, 1) })}
+                onChange={(e) => updateMetrics({ meditation_minutes: e.target.value })}
+                onBlur={(e) => updateMetrics({ meditation_minutes: clampNum(e.target.value, 0, 1440, 1) })}
                 placeholder="5"
               />
             </div>
@@ -487,8 +546,8 @@ export default function Today() {
               <label><Smartphone size={16} /> Pantalla (horas)</label>
               <input type="number" step="0.5" min="0" max="24" inputMode="decimal"
                 value={metrics.screen_hours}
-                onChange={(e) => setMetrics({ ...metrics, screen_hours: e.target.value })}
-                onBlur={(e) => setMetrics({ ...metrics, screen_hours: clampNum(e.target.value, 0, 24, 0.5) })}
+                onChange={(e) => updateMetrics({ screen_hours: e.target.value })}
+                onBlur={(e) => updateMetrics({ screen_hours: clampNum(e.target.value, 0, 24, 0.5) })}
                 placeholder="3"
               />
             </div>
@@ -496,8 +555,8 @@ export default function Today() {
               <label><Wallet size={16} /> Gasto (Q)</label>
               <input type="number" min="0" step="0.01" inputMode="decimal"
                 value={metrics.spending}
-                onChange={(e) => setMetrics({ ...metrics, spending: e.target.value })}
-                onBlur={(e) => setMetrics({ ...metrics, spending: clampNum(e.target.value, 0, 999999, 0.01) })}
+                onChange={(e) => updateMetrics({ spending: e.target.value })}
+                onBlur={(e) => updateMetrics({ spending: clampNum(e.target.value, 0, 999999, 0.01) })}
                 placeholder="50"
               />
             </div>
@@ -508,7 +567,7 @@ export default function Today() {
           <label>Nota personal</label>
           <textarea
             value={metrics.note}
-            onChange={(e) => setMetrics({ ...metrics, note: e.target.value })}
+            onChange={(e) => updateMetrics({ note: e.target.value })}
             placeholder="Como fue tu dia?"
             rows={3}
           />

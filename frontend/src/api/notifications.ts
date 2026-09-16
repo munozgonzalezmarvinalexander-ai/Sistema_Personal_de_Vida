@@ -13,44 +13,58 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
   return result;
 }
 
-export function showLocalNotification(title: string, body: string): boolean {
+export async function showLocalNotification(title: string, body: string, tag = 'rumbo-reminder'): Promise<boolean> {
   if (typeof window === 'undefined' || !('Notification' in window)) {
     return false;
   }
   if (Notification.permission !== 'granted') {
     return false;
   }
-  new Notification(title, {
-    body,
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-192x192.png',
-    tag: 'rumbo-reminder',
-  });
-  return true;
+  const options = { body, icon: '/icons/icon-192x192.png', badge: '/icons/icon-192x192.png', tag };
+  try {
+    if ('serviceWorker' in navigator) {
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (registration) {
+        await registration.showNotification(title, options);
+        return true;
+      }
+    }
+    new Notification(title, options);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 const SHOWN_KEY_PREFIX = 'rumbo_reminder_shown_';
 
-export function wasReminderShownToday(reminderType: string): boolean {
+export function wasReminderShownToday(userId: string, reminderType: string): boolean {
   if (typeof localStorage === 'undefined') return true;
-  const today = new Date().toISOString().split('T')[0];
-  return localStorage.getItem(`${SHOWN_KEY_PREFIX}${reminderType}`) === today;
+  const today = guatemalaDateString();
+  return localStorage.getItem(`${SHOWN_KEY_PREFIX}${userId}_${reminderType}`) === today;
 }
 
-export function markReminderShown(reminderType: string): void {
+export function markReminderShown(userId: string, reminderType: string): void {
   if (typeof localStorage === 'undefined') return;
-  const today = new Date().toISOString().split('T')[0];
-  localStorage.setItem(`${SHOWN_KEY_PREFIX}${reminderType}`, today);
+  const today = guatemalaDateString();
+  localStorage.setItem(`${SHOWN_KEY_PREFIX}${userId}_${reminderType}`, today);
 }
 
-export function isTimeMatch(targetTime: string): boolean {
-  const now = new Date();
-  const currentHH = String(now.getHours()).padStart(2, '0');
-  const currentMM = String(now.getMinutes()).padStart(2, '0');
-  return `${currentHH}:${currentMM}` === targetTime;
+export function isTimeDue(targetTime: string, offsetMinutes = 0): boolean {
+  const current = new Intl.DateTimeFormat('en-US', {
+    timeZone: APP_TIME_ZONE, hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(current.map((part) => [part.type, part.value]));
+  const currentMinutes = Number(values.hour) * 60 + Number(values.minute);
+  const [hour, minute] = targetTime.split(':').map(Number);
+  return currentMinutes >= hour * 60 + minute + offsetMinutes;
 }
+
+export const isTimeMatch = isTimeDue;
 
 export function isDayMatch(targetDay: string): boolean {
-  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  return days[new Date().getDay()] === targetDay.toLowerCase();
+  const day = new Intl.DateTimeFormat('en-US', { timeZone: APP_TIME_ZONE, weekday: 'long' })
+    .format(new Date()).toLowerCase();
+  return day === targetDay.toLowerCase();
 }
+import { APP_TIME_ZONE, guatemalaDateString } from '../utils/date';

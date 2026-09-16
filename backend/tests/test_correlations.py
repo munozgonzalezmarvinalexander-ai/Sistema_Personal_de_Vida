@@ -166,12 +166,13 @@ def test_lag1_detects_sleep_energy(auth_client):
 
     corrs = body["correlations"]
     found = [c for c in corrs if
-             {c["metric_x"], c["metric_y"]} == {"sleep_hours", "energy"}]
+             c["metric_x"] == "sleep_hours" and c["metric_y"] == "energy"]
     assert len(found) == 1
     assert found[0]["lag_days"] == 1
     assert found[0]["direction"] == "positive"
     assert found[0]["coefficient"] > 0.4
     assert len(found[0]["data_points"]) > 0
+    assert any(c["metric_x"] == "energy" and c["metric_y"] == "sleep_hours" for c in corrs)
     assert "dia anterior" in body["message"] or "dia siguiente" in body["message"]
 
 

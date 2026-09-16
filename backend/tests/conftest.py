@@ -1,4 +1,5 @@
 import os
+import uuid
 
 os.environ.setdefault("DATABASE_URL", "sqlite://")
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-pytest-only-not-production")
@@ -12,11 +13,27 @@ from sqlalchemy.pool import StaticPool
 from app.core.database import Base, get_db
 from app.main import app
 
-engine = create_engine(
-    "sqlite://",
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
+test_database_url = os.environ.get("TEST_DATABASE_URL")
+if test_database_url and test_database_url.startswith("postgresql://"):
+    test_database_url = test_database_url.replace("postgresql://", "postgresql+psycopg://", 1)
+test_schema: str | None = None
+admin_engine = None
+
+if test_database_url:
+    test_schema = f"rumbo_test_{uuid.uuid4().hex}"
+    admin_engine = create_engine(test_database_url, isolation_level="AUTOCOMMIT")
+    with admin_engine.connect() as connection:
+        connection.exec_driver_sql(f'CREATE SCHEMA "{test_schema}"')
+    engine = create_engine(
+        test_database_url,
+        connect_args={"options": f"-csearch_path={test_schema}"},
+    )
+else:
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
 TestSession = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
@@ -36,6 +53,14 @@ def setup_db():
     Base.metadata.create_all(bind=engine)
     yield
     Base.metadata.drop_all(bind=engine)
+
+
+def pytest_sessionfinish(session, exitstatus):
+    engine.dispose()
+    if admin_engine is not None and test_schema is not None:
+        with admin_engine.connect() as connection:
+            connection.exec_driver_sql(f'DROP SCHEMA IF EXISTS "{test_schema}" CASCADE')
+        admin_engine.dispose()
 
 
 @pytest.fixture

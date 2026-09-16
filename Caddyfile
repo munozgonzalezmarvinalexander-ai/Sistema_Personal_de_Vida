@@ -1,0 +1,5 @@
+{$RUMBO_HOST:rumbo.home} {
+    tls internal
+    encode zstd gzip
+    reverse_proxy frontend:80
+}
