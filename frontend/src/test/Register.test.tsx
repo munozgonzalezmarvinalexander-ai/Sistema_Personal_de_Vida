@@ -13,7 +13,7 @@ describe('Register', () => {
     render(<Register />, { wrapper: Wrapper });
     expect(screen.getByLabelText(/nombre/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/contrasena/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/contrasena/i)).toHaveAttribute('minLength', '8');
   });
 
   it('renders create account button', () => {

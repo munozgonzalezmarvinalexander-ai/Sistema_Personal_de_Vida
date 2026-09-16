@@ -157,7 +157,7 @@ GitHub Actions ejecuta automaticamente en cada push/PR a main:
 | Variable | Requerida | Default | Descripcion |
 |----------|-----------|---------|-------------|
 | `DATABASE_URL` | Si | — | Conexion PostgreSQL |
-| `SECRET_KEY` | Si | — | Clave JWT (min 16 chars) |
+| `SECRET_KEY` | Si | — | Clave JWT aleatoria (min 32 caracteres; sin valor por defecto) |
 | `ALGORITHM` | No | `HS256` | Algoritmo JWT |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | No | `1440` | Expiracion de token |
 | `BACKEND_CORS_ORIGINS` | No | `localhost:5173,localhost:3000` | Origenes CORS |
