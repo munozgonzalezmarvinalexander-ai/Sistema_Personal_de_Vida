@@ -86,3 +86,22 @@ jobs:
       - name: Run tests
         working-directory: frontend
         run: npm run test:run
+
+  containers:
+    name: Docker Profiles
+    runs-on: ubuntu-latest
+    env:
+      SECRET_KEY: ci-compose-secret-key-minimum-length-validation
+      DATABASE_URL: postgresql+psycopg://user:password@example.invalid/neondb?sslmode=require
+      RUMBO_HOST: rumbo.home
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Validate Compose profiles
+        run: |
+          docker compose config --quiet
+          docker compose -f docker-compose.home.yml config --quiet
+
+      - name: Build application images
+        run: docker compose build backend frontend migrations
