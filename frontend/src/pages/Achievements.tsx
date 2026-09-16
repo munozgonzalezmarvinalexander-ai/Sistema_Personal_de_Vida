@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api, { getErrorMessage } from '../api/client';
 import type { UserProgress, AchievementsList } from '../api/types';
+import { APP_TIME_ZONE } from '../utils/date';
 import {
   Award, Star, CalendarCheck, ListChecks, FlaskConical, Trophy,
   Lock, AlertCircle, Loader2
@@ -102,7 +103,7 @@ export default function Achievements() {
                 <div className="ach-content">
                   <h3>{a.title}</h3>
                   <p>{a.description}</p>
-                  <span className="ach-date">{new Date(a.unlocked_at).toLocaleDateString('es-GT')}</span>
+                  <span className="ach-date">{new Date(a.unlocked_at).toLocaleDateString('es-GT', { timeZone: APP_TIME_ZONE })}</span>
                 </div>
               </div>
             ))}

@@ -12,20 +12,22 @@ export function guatemalaDateString(date = new Date()): string {
 }
 
 export function dateFromIso(value: string): Date {
-  return new Date(`${value}T12:00:00`);
+  // Guatemala has a fixed UTC-06:00 offset. Anchoring at local noon keeps the
+  // intended calendar day stable even when the device uses another time zone.
+  return new Date(`${value}T12:00:00-06:00`);
 }
 
 export function addDays(value: string, days: number): string {
   const date = dateFromIso(value);
-  date.setDate(date.getDate() + days);
+  date.setUTCDate(date.getUTCDate() + days);
   return guatemalaDateString(date);
 }
 
 export function mondayForGuatemala(date = new Date()): string {
   const today = guatemalaDateString(date);
   const local = dateFromIso(today);
-  const day = local.getDay();
-  local.setDate(local.getDate() - day + (day === 0 ? -6 : 1));
+  const day = local.getUTCDay();
+  local.setUTCDate(local.getUTCDate() - day + (day === 0 ? -6 : 1));
   return guatemalaDateString(local);
 }
 

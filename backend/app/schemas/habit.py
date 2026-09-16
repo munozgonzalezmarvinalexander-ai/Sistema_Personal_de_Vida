@@ -28,11 +28,11 @@ class HabitCreate(BaseModel):
 
 
 class HabitUpdate(BaseModel):
-    name: str | None = None
-    category: str | None = None
-    level_min: str | None = None
-    level_normal: str | None = None
-    level_ideal: str | None = None
+    name: str | None = Field(None, max_length=100)
+    category: str | None = Field(None, max_length=50)
+    level_min: str | None = Field(None, max_length=500)
+    level_normal: str | None = Field(None, max_length=500)
+    level_ideal: str | None = Field(None, max_length=500)
     is_core: bool | None = None
     active: bool | None = None
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api, { getErrorMessage } from '../api/client';
 import type { Experiment, ExperimentCreate, ExperimentDecision } from '../api/types';
-import { guatemalaDateString } from '../utils/date';
+import { dateFromIso, guatemalaDateString } from '../utils/date';
 import {
   Plus, X, FlaskConical, CheckCircle2, XCircle, Clock,
   Calendar, Target, AlertCircle, Loader2, Trash2
@@ -19,10 +19,9 @@ const DECISION_LABELS: Record<ExperimentDecision, { label: string; color: string
 };
 
 function daysProgress(start: string, end: string): { elapsed: number; remaining: number; percent: number; total: number } {
-  const s = new Date(start + 'T00:00:00');
-  const e = new Date(end + 'T00:00:00');
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
+  const s = dateFromIso(start);
+  const e = dateFromIso(end);
+  const now = dateFromIso(guatemalaDateString());
   const total = Math.round((e.getTime() - s.getTime()) / 86400000) + 1;
   const elapsed = Math.max(0, Math.min(total, Math.round((now.getTime() - s.getTime()) / 86400000) + 1));
   const remaining = Math.max(0, total - elapsed);

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api, { getErrorMessage } from '../api/client';
 import type { Habit, HabitLog, DailyCheckin, LevelDone, StreakResponse, UserProgress, RecalculateResult, Insight } from '../api/types';
-import { formatGuatemalaDate, guatemalaDateString } from '../utils/date';
+import { APP_TIME_ZONE, formatGuatemalaDate, guatemalaDateString } from '../utils/date';
 import {
   Sun, Moon, Droplets, Brain, Zap, UtensilsCrossed,
   Smartphone, Wallet, BookOpen, Code, GraduationCap,
@@ -260,7 +260,10 @@ export default function Today() {
   };
 
   const getGreeting = () => {
-    const h = new Date().getHours();
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: APP_TIME_ZONE, hour: '2-digit', hourCycle: 'h23',
+    }).formatToParts(new Date());
+    const h = Number(parts.find((part) => part.type === 'hour')?.value || 0);
     if (h < 12) return 'Buenos dias';
     if (h < 18) return 'Buenas tardes';
     return 'Buenas noches';
