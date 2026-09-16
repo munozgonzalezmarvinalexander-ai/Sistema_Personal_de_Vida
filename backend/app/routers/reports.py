@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -15,6 +15,8 @@ from app.schemas.report import (
     WeeklyReport, HabitReport, ComparisonValue,
     TrendsResponse, TrendDay, StreakResponse,
 )
+from app.core.dates import APP_TIMEZONE
+from app.services.streaks import calculate_streaks
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
@@ -119,7 +121,8 @@ def weekly_report(
             total_points=stats_map.get(habit.id, (0, 0))[1],
         )
         for habit in habits
-        if habit.created_at.date() <= end_date
+        if (habit.created_at.replace(tzinfo=timezone.utc) if habit.created_at.tzinfo is None else habit.created_at).astimezone(APP_TIMEZONE).date() <= end_date
+        and (habit.active or habit.id in stats_map)
     ]
 
     most_completed = sorted(
@@ -212,82 +215,12 @@ def streaks(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    end = today_local()
-    start = end - timedelta(days=89)
-
-    checkins = (
-        db.query(DailyCheckin.checkin_date, DailyCheckin.points)
-        .filter(
-            DailyCheckin.user_id == current_user.id,
-            DailyCheckin.checkin_date >= start,
-            DailyCheckin.checkin_date <= end,
-        )
-        .all()
-    )
-    checkin_points = {c.checkin_date: c.points for c in checkins}
-
-    habit_dates = set(
-        row[0] for row in
-        db.query(HabitLog.log_date)
-        .filter(
-            HabitLog.user_id == current_user.id,
-            HabitLog.log_date >= start,
-            HabitLog.log_date <= end,
-            HabitLog.completed.is_(True),
-        )
-        .distinct()
-        .all()
-    )
-
-    active_dates = set()
-    current = start
-    while current <= end:
-        pts = checkin_points.get(current, 0)
-        has_habit = current in habit_dates
-        if pts > 0 or has_habit:
-            active_dates.add(current)
-        current += timedelta(days=1)
-
-    total_days = (end - start).days + 1
-
-    current_streak = 0
-    best_streak = 0
-    streak = 0
-    consecutive_misses = 0
-
-    current = start
-    while current <= end:
-        if current in active_dates:
-            consecutive_misses = 0
-            streak += 1
-        else:
-            consecutive_misses += 1
-            if consecutive_misses >= 2:
-                best_streak = max(best_streak, streak)
-                streak = 0
-                consecutive_misses = 0
-        current += timedelta(days=1)
-
-    best_streak = max(best_streak, streak)
-    current_streak = streak
-
-    week_start = end - timedelta(days=end.weekday())
-    grace_days = 0
-    d = week_start
-    prev_active = True
-    while d <= end:
-        if d not in active_dates:
-            if prev_active:
-                grace_days += 1
-            prev_active = False
-        else:
-            prev_active = True
-        d += timedelta(days=1)
+    stats = calculate_streaks(db, current_user.id)
 
     return StreakResponse(
-        current_streak=current_streak,
-        best_streak=best_streak,
-        grace_days_used_this_week=grace_days,
-        total_active_days=len(active_dates),
-        total_days_checked=total_days,
+        current_streak=stats.current,
+        best_streak=stats.best,
+        grace_days_used_this_week=stats.grace_this_week,
+        total_active_days=stats.active_days,
+        total_days_checked=stats.checked_days,
     )

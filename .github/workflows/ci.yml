@@ -13,7 +13,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:16
+        image: postgres:18
         env:
           POSTGRES_USER: rumbo_user
           POSTGRES_PASSWORD: rumbo_pass
@@ -78,6 +78,10 @@ jobs:
       - name: TypeScript check
         working-directory: frontend
         run: npx tsc --noEmit
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
 
       - name: Build
         working-directory: frontend

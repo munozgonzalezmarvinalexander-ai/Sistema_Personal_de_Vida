@@ -76,4 +76,5 @@ def seed_habits(db: Session, user_id: str):
         return
     for h in DEFAULT_HABITS:
         db.add(Habit(user_id=user_id, **h))
-    db.commit()
+    # The caller owns the transaction so user creation and initial habits are atomic.
+    db.flush()

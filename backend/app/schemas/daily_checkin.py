@@ -1,18 +1,19 @@
 from datetime import date, datetime
+from decimal import Decimal
 
 from pydantic import BaseModel, Field
 
 
 class DailyCheckinCreate(BaseModel):
     checkin_date: date
-    sleep_hours: float | None = Field(None, ge=0, le=24)
+    sleep_hours: Decimal | None = Field(None, ge=0, le=24, max_digits=3, decimal_places=1, allow_inf_nan=False)
     sleep_quality: int | None = Field(None, ge=1, le=5)
-    water_liters: float | None = Field(None, ge=0, le=15)
+    water_liters: Decimal | None = Field(None, ge=0, le=15, max_digits=3, decimal_places=1, allow_inf_nan=False)
     mood: int | None = Field(None, ge=1, le=5)
     energy: int | None = Field(None, ge=1, le=5)
     food_quality: int | None = Field(None, ge=1, le=5)
-    screen_hours: float | None = Field(None, ge=0, le=24)
-    spending: float | None = Field(None, ge=0)
+    screen_hours: Decimal | None = Field(None, ge=0, le=24, max_digits=3, decimal_places=1, allow_inf_nan=False)
+    spending: Decimal | None = Field(None, ge=0, le=Decimal("999999.99"), max_digits=8, decimal_places=2, allow_inf_nan=False)
     university_study_minutes: int | None = Field(None, ge=0, le=1440)
     english_minutes: int | None = Field(None, ge=0, le=1440)
     programming_minutes: int | None = Field(None, ge=0, le=1440)
@@ -22,14 +23,14 @@ class DailyCheckinCreate(BaseModel):
 
 
 class DailyCheckinUpdate(BaseModel):
-    sleep_hours: float | None = Field(None, ge=0, le=24)
+    sleep_hours: Decimal | None = Field(None, ge=0, le=24, max_digits=3, decimal_places=1, allow_inf_nan=False)
     sleep_quality: int | None = Field(None, ge=1, le=5)
-    water_liters: float | None = Field(None, ge=0, le=15)
+    water_liters: Decimal | None = Field(None, ge=0, le=15, max_digits=3, decimal_places=1, allow_inf_nan=False)
     mood: int | None = Field(None, ge=1, le=5)
     energy: int | None = Field(None, ge=1, le=5)
     food_quality: int | None = Field(None, ge=1, le=5)
-    screen_hours: float | None = Field(None, ge=0, le=24)
-    spending: float | None = Field(None, ge=0)
+    screen_hours: Decimal | None = Field(None, ge=0, le=24, max_digits=3, decimal_places=1, allow_inf_nan=False)
+    spending: Decimal | None = Field(None, ge=0, le=Decimal("999999.99"), max_digits=8, decimal_places=2, allow_inf_nan=False)
     university_study_minutes: int | None = Field(None, ge=0, le=1440)
     english_minutes: int | None = Field(None, ge=0, le=1440)
     programming_minutes: int | None = Field(None, ge=0, le=1440)

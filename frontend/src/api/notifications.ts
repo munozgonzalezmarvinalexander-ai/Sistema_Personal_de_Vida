@@ -37,17 +37,21 @@ export async function showLocalNotification(title: string, body: string, tag = '
 }
 
 const SHOWN_KEY_PREFIX = 'rumbo_reminder_shown_';
+const shownThisSession = new Set<string>();
 
 export function wasReminderShownToday(userId: string, reminderType: string): boolean {
-  if (typeof localStorage === 'undefined') return true;
   const today = guatemalaDateString();
-  return localStorage.getItem(`${SHOWN_KEY_PREFIX}${userId}_${reminderType}`) === today;
+  const key = `${SHOWN_KEY_PREFIX}${userId}_${reminderType}`;
+  if (shownThisSession.has(`${key}_${today}`)) return true;
+  try { return typeof localStorage !== 'undefined' && localStorage.getItem(key) === today; }
+  catch { return false; }
 }
 
 export function markReminderShown(userId: string, reminderType: string): void {
-  if (typeof localStorage === 'undefined') return;
   const today = guatemalaDateString();
-  localStorage.setItem(`${SHOWN_KEY_PREFIX}${userId}_${reminderType}`, today);
+  const key = `${SHOWN_KEY_PREFIX}${userId}_${reminderType}`;
+  shownThisSession.add(`${key}_${today}`);
+  try { if (typeof localStorage !== 'undefined') localStorage.setItem(key, today); } catch { /* session memory prevents duplicates */ }
 }
 
 export function isTimeDue(targetTime: string, offsetMinutes = 0): boolean {

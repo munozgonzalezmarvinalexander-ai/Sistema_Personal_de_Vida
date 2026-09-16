@@ -2,6 +2,11 @@ import pytest
 from pydantic import ValidationError
 
 from app.core.config import Settings
+from app.core.database import engine
+
+
+def test_database_pool_checks_connections_before_reuse():
+    assert engine.pool._pre_ping is True
 
 
 def make_settings(secret_key: str) -> Settings:

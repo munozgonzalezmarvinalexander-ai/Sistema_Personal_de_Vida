@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import api, { getErrorMessage } from '../api/client';
 import type { Habit, HabitLog, DailyCheckin, LevelDone, StreakResponse, UserProgress, RecalculateResult, Insight } from '../api/types';
 import { APP_TIME_ZONE, formatGuatemalaDate, guatemalaDateString } from '../utils/date';
+import { clearUserDrafts, parseTodayDraft, savedSnapshotIsCurrent, type TodayMetrics } from '../utils/todayDraft';
 import {
   Sun, Moon, Droplets, Brain, Zap, UtensilsCrossed,
   Smartphone, Wallet, BookOpen, Code, GraduationCap,
@@ -34,7 +35,7 @@ const EMPTY_METRICS = {
   meditation_minutes: '', note: '',
 };
 
-type Metrics = typeof EMPTY_METRICS;
+type Metrics = TodayMetrics;
 
 function clampNum(val: string, min: number, max: number, step: number): string {
   if (val === '') return '';
@@ -61,12 +62,18 @@ export default function Today() {
   const [optionalError, setOptionalError] = useState('');
   const [dirty, setDirty] = useState(false);
   const [dayChanged, setDayChanged] = useState(false);
+  const [draftStorageError, setDraftStorageError] = useState(false);
+  const [pendingHabits, setPendingHabits] = useState<Set<string>>(new Set());
   const requestSequence = useRef(0);
+  const editRevision = useRef(0);
+  const savingRef = useRef(false);
+  const pendingHabitRef = useRef(new Set<string>());
 
   const [metrics, setMetrics] = useState<Metrics>(EMPTY_METRICS);
 
-  const draftKey = `rumbo_checkin_draft_${user?.id || 'anonymous'}_${activeDate}`;
+  const draftKey = user ? `rumbo_checkin_draft_${user.id}_${activeDate}` : '';
   const updateMetrics = (updates: Partial<Metrics>) => {
+    editRevision.current += 1;
     setMetrics((current) => ({ ...current, ...updates }));
     setDirty(true);
   };
@@ -132,10 +139,16 @@ export default function Today() {
           note: checkinRes.data.note ?? '',
         };
       }
-      const savedDraft = localStorage.getItem(draftKey);
+      let savedDraft: string | null = null;
+      try { savedDraft = draftKey ? localStorage.getItem(draftKey) : null; }
+      catch { setDraftStorageError(true); }
       if (savedDraft) {
-        try { loadedMetrics = { ...loadedMetrics, ...JSON.parse(savedDraft) }; setDirty(true); }
-        catch { localStorage.removeItem(draftKey); setDirty(false); }
+        const parsed = parseTodayDraft(savedDraft);
+        if (parsed) { loadedMetrics = parsed; setDirty(true); }
+        else {
+          try { localStorage.removeItem(draftKey); } catch { setDraftStorageError(true); }
+          setDirty(false);
+        }
       } else setDirty(false);
       setMetrics(loadedMetrics);
       void loadOptionalData(sequence);
@@ -149,7 +162,11 @@ export default function Today() {
   useEffect(() => { loadData(); }, [loadData]);
 
   useEffect(() => {
-    if (dirty) localStorage.setItem(draftKey, JSON.stringify(metrics));
+    if (!dirty || !draftKey) return;
+    try {
+      localStorage.setItem(draftKey, JSON.stringify(metrics));
+      setDraftStorageError(false);
+    } catch { setDraftStorageError(true); }
   }, [dirty, draftKey, metrics]);
 
   useEffect(() => {
@@ -169,6 +186,9 @@ export default function Today() {
   }, [activeDate]);
 
   const handleLevel = async (habitId: string, level: LevelDone) => {
+    if (pendingHabitRef.current.has(habitId)) return;
+    pendingHabitRef.current.add(habitId);
+    setPendingHabits(new Set(pendingHabitRef.current));
     try {
       const existing = logs[habitId];
       if (existing) {
@@ -184,6 +204,9 @@ export default function Today() {
       }
     } catch (err) {
       showToast('error', getErrorMessage(err));
+    } finally {
+      pendingHabitRef.current.delete(habitId);
+      setPendingHabits(new Set(pendingHabitRef.current));
     }
   };
 
@@ -196,7 +219,10 @@ export default function Today() {
     if (s.energy && (Number(s.energy) < 1 || Number(s.energy) > 5)) return 'Energia: 1-5';
     if (s.food_quality && (Number(s.food_quality) < 1 || Number(s.food_quality) > 5)) return 'Comida: 1-5';
     if (s.screen_hours && (Number(s.screen_hours) < 0 || Number(s.screen_hours) > 24)) return 'Pantalla: 0-24 horas';
-    if (s.spending && Number(s.spending) < 0) return 'Gasto no puede ser negativo';
+    for (const value of Object.values(s).slice(0, -1)) {
+      if (value && !Number.isFinite(Number(value))) return 'Hay un valor numerico no valido';
+    }
+    if (s.spending && (Number(s.spending) < 0 || Number(s.spending) > 999999.99)) return 'Gasto: 0-999999.99';
     const minFields = ['university_study_minutes', 'english_minutes', 'programming_minutes', 'reading_minutes', 'meditation_minutes'] as const;
     for (const f of minFields) {
       if (s[f] && Number(s[f]) < 0) return 'Los minutos no pueden ser negativos';
@@ -205,12 +231,17 @@ export default function Today() {
   };
 
   const handleSave = async () => {
+    if (savingRef.current) return;
     const validationError = validateMetrics();
     if (validationError) {
       showToast('error', validationError);
       return;
     }
+    savingRef.current = true;
     setSaving(true);
+    const savedRevision = editRevision.current;
+    const snapshot = { ...metrics };
+    const savedDate = activeDate;
     try {
       const payload: Record<string, unknown> = { checkin_date: activeDate };
       const numFields = [
@@ -219,12 +250,10 @@ export default function Today() {
         'english_minutes', 'programming_minutes', 'reading_minutes', 'meditation_minutes'
       ];
       for (const f of numFields) {
-        const val = metrics[f as keyof typeof metrics];
+        const val = snapshot[f as keyof typeof snapshot];
         payload[f] = val !== '' ? Number(val) : null;
       }
-      localStorage.removeItem(draftKey);
-      setDirty(false);
-      payload.note = metrics.note || null;
+      payload.note = snapshot.note || null;
 
       if (checkin) {
         const { checkin_date: _, ...updatePayload } = payload;
@@ -233,6 +262,10 @@ export default function Today() {
       } else {
         const res = await api.post('/checkins', payload);
         setCheckin(res.data);
+      }
+      if (savedSnapshotIsCurrent(savedRevision, editRevision.current, savedDate, activeDate)) {
+        try { localStorage.removeItem(draftKey); } catch { setDraftStorageError(true); }
+        setDirty(false);
       }
       showToast('success', 'Dia guardado correctamente');
       try {
@@ -246,8 +279,23 @@ export default function Today() {
     } catch (err) {
       showToast('error', getErrorMessage(err));
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
+  };
+
+  const discardLocalDrafts = () => {
+    if (!user) return;
+    if (!clearUserDrafts(user.id)) {
+      setDraftStorageError(true);
+      showToast('error', 'No se pudo limpiar el almacenamiento del navegador');
+      return;
+    }
+    editRevision.current += 1;
+    setMetrics({ ...EMPTY_METRICS });
+    setDirty(false);
+    setDraftStorageError(false);
+    showToast('success', 'Borradores locales eliminados; los datos guardados no cambiaron');
   };
 
   const totalPoints = Object.values(logs).reduce((sum, l) => sum + l.points, 0);
@@ -394,6 +442,8 @@ export default function Today() {
                       key={level}
                       className={`level-btn ${LEVEL_COLORS[level]} ${currentLevel === level ? 'active' : ''}`}
                       onClick={() => handleLevel(habit.id, level)}
+                      disabled={pendingHabits.has(habit.id)}
+                      aria-busy={pendingHabits.has(habit.id)}
                       title={
                         level === 'min' ? habit.level_min :
                         level === 'normal' ? habit.level_normal :
@@ -556,10 +606,10 @@ export default function Today() {
             </div>
             <div className="metric-item">
               <label><Wallet size={16} /> Gasto (Q)</label>
-              <input type="number" min="0" step="0.01" inputMode="decimal"
+              <input type="number" min="0" max="999999.99" step="0.01" inputMode="decimal"
                 value={metrics.spending}
                 onChange={(e) => updateMetrics({ spending: e.target.value })}
-                onBlur={(e) => updateMetrics({ spending: clampNum(e.target.value, 0, 999999, 0.01) })}
+                onBlur={(e) => updateMetrics({ spending: clampNum(e.target.value, 0, 999999.99, 0.01) })}
                 placeholder="50"
               />
             </div>
@@ -580,6 +630,8 @@ export default function Today() {
           {saving ? <><Loader2 size={18} className="spin" /> Guardando...</> :
            <><Save size={18} /> Guardar dia</>}
         </button>
+        {draftStorageError && <p className="error-msg">Los cambios siguen en esta pestaña, pero el navegador no pudo proteger este borrador local.</p>}
+        {dirty && <button type="button" className="btn btn-secondary btn-full" onClick={discardLocalDrafts}>Descartar borradores locales</button>}
       </section>
     </div>
   );

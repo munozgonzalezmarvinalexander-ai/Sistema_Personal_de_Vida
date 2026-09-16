@@ -46,3 +46,21 @@ def test_me_with_token(auth_client):
 def test_me_without_token(client):
     res = client.get("/api/auth/me")
     assert res.status_code == 401
+
+
+def test_register_rolls_back_user_when_initial_habits_fail(client, monkeypatch):
+    from app.models.user import User
+    from tests.conftest import TestSession
+
+    def fail_seed(db, user_id):
+        raise RuntimeError("seed failed")
+
+    monkeypatch.setattr("app.routers.auth.seed_habits", fail_seed)
+    try:
+        client.post("/api/auth/register", json={
+            "email": "atomic@example.com", "password": "pass123456", "display_name": "Atomic",
+        })
+    except RuntimeError:
+        pass
+    with TestSession() as db:
+        assert db.query(User).filter(User.email == "atomic@example.com").first() is None

@@ -7,3 +7,12 @@ venv
 .mypy_cache
 tests/
 alembic/versions/__pycache__
+*.env*
+backups
+*.dump
+*.backup
+*.sql.gz
+*.pem
+*.key
+*.p12
+*.pfx

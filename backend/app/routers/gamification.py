@@ -1,5 +1,3 @@
-from datetime import datetime, timedelta, timezone
-
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -19,6 +17,7 @@ from app.schemas.gamification import (
 )
 from app.seed import DEFAULT_HABITS
 from app.services.achievements import ACHIEVEMENT_DEFS, unlock_achievement
+from app.services.streaks import calculate_streaks
 
 router = APIRouter(prefix="/gamification", tags=["gamification"])
 
@@ -30,37 +29,7 @@ def _get_total_points(db: Session, user_id: str) -> int:
 
 
 def _calc_best_streak(db: Session, user_id: str) -> int:
-    end = today_local()
-    start = end - timedelta(days=89)
-    checkin_dates = set(
-        row[0] for row in
-        db.query(DailyCheckin.checkin_date)
-        .filter(DailyCheckin.user_id == user_id, DailyCheckin.checkin_date >= start)
-        .all()
-    )
-    habit_dates = set(
-        row[0] for row in
-        db.query(HabitLog.log_date)
-        .filter(HabitLog.user_id == user_id, HabitLog.log_date >= start, HabitLog.completed.is_(True))
-        .distinct().all()
-    )
-    active = checkin_dates | habit_dates
-    best = 0
-    streak = 0
-    misses = 0
-    d = start
-    while d <= end:
-        if d in active:
-            misses = 0
-            streak += 1
-        else:
-            misses += 1
-            if misses >= 2:
-                best = max(best, streak)
-                streak = 0
-                misses = 0
-        d += timedelta(days=1)
-    return max(best, streak)
+    return calculate_streaks(db, user_id).best
 
 
 def recalculate_achievements(db: Session, user_id: str) -> list[str]:
