@@ -126,6 +126,17 @@ def test_days_parameter_validation(auth_client):
 
 # ── lag=0 returns data_points and lag_days ──
 
+
+def test_lag_recommendations_never_reverse_temporal_direction():
+    from app.routers.insights import LAG_RECOMMENDATIONS, DEFAULT_LAG_RECOMMENDATION, _message, _recommendation
+
+    source, target = next(iter(LAG_RECOMMENDATIONS))
+    assert _recommendation(source, target, lag=1) == LAG_RECOMMENDATIONS[(source, target)]
+    assert _recommendation(target, source, lag=1) == DEFAULT_LAG_RECOMMENDATION
+    assert "exploratorio" in _message(source, target, "positive", lag=1).lower()
+    assert "exploratorio" in _message(source, target, "negative", lag=1).lower()
+    assert "no demuestra causalidad" in _message(source, target, "negative", lag=1).lower()
+
 def test_lag0_returns_data_points(auth_client):
     data = []
     for i in range(10):
