@@ -27,8 +27,8 @@ class DecisionType(str, Enum):
 
 class ExperimentCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=150)
-    description: str | None = None
-    hypothesis: str = Field(..., min_length=1)
+    description: str | None = Field(None, max_length=2000)
+    hypothesis: str = Field(..., min_length=1, max_length=1000)
     metric_tracked: str = Field(..., min_length=1, max_length=100)
     duration_days: DurationDays
     start_date: date
@@ -39,15 +39,15 @@ class ExperimentCreate(BaseModel):
 
 class ExperimentUpdate(BaseModel):
     title: str | None = Field(None, min_length=1, max_length=150)
-    description: str | None = None
-    hypothesis: str | None = None
-    metric_tracked: str | None = None
+    description: str | None = Field(None, max_length=2000)
+    hypothesis: str | None = Field(None, max_length=1000)
+    metric_tracked: str | None = Field(None, max_length=100)
 
     _required_text = field_validator("title", "hypothesis", "metric_tracked", mode="before")(_strip_required)
 
 
 class ExperimentComplete(BaseModel):
-    result: str = Field(..., min_length=1)
+    result: str = Field(..., min_length=1, max_length=5000)
     decision: DecisionType
 
     _required_result = field_validator("result", mode="before")(_strip_required)

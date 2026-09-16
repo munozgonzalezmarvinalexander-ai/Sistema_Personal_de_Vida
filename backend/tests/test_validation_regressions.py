@@ -11,6 +11,8 @@ def test_rejects_blank_and_null_habit_fields(auth_client):
     }
     assert auth_client.post("/api/habits", json={**base, "name": "   "}).status_code == 422
     assert auth_client.post("/api/habits", json={**base, "category": None}).status_code == 422
+    habit_id = auth_client.get("/api/habits").json()[0]["id"]
+    assert auth_client.put(f"/api/habits/{habit_id}", json={"level_min": "x" * 501}).status_code == 422
 
 
 def test_rejects_bcrypt_password_over_72_bytes(client):

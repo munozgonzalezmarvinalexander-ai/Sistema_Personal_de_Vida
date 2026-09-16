@@ -80,7 +80,7 @@ export default function WeeklyReport() {
   const prevWeek = () => setMonday(new Date(monday.getTime() - 7 * 86400000));
   const nextWeek = () => {
     const next = new Date(monday.getTime() + 7 * 86400000);
-    if (next <= new Date()) setMonday(next);
+    if (formatDateStr(next) <= guatemalaDateString()) setMonday(next);
   };
 
   const sunday = new Date(monday.getTime() + 6 * 86400000);
