@@ -347,7 +347,8 @@ def _recommendation(metric_x: str, metric_y: str, lag: int = 0) -> str:
     rev = (metric_y, metric_x)
     if lag == 0:
         return RECOMMENDATIONS.get(key, RECOMMENDATIONS.get(rev, DEFAULT_RECOMMENDATION))
-    return LAG_RECOMMENDATIONS.get(key, LAG_RECOMMENDATIONS.get(rev, DEFAULT_LAG_RECOMMENDATION))
+    # Lagged relationships are directional: X yesterday -> Y today must never be reversed.
+    return LAG_RECOMMENDATIONS.get(key, DEFAULT_LAG_RECOMMENDATION)
 
 
 MAX_SCATTER_POINTS = 50

@@ -23,9 +23,10 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
         display_name=data.display_name,
     )
     db.add(user)
+    db.flush()
+    seed_habits(db, user.id)
     db.commit()
     db.refresh(user)
-    seed_habits(db, user.id)
     token = create_access_token({"sub": user.id})
     return Token(access_token=token, user=UserOut.model_validate(user))
 

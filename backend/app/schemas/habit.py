@@ -15,6 +15,12 @@ def _strip_required(value: str | None) -> str:
     return value
 
 
+def _reject_null(value):
+    if value is None:
+        raise ValueError("El valor no puede ser nulo")
+    return value
+
+
 class HabitCreate(BaseModel):
     name: str = Field(..., max_length=100)
     category: str = Field(..., max_length=50)
@@ -37,6 +43,7 @@ class HabitUpdate(BaseModel):
     active: bool | None = None
 
     _required_text = field_validator(*TEXT_FIELDS, mode="before")(_strip_required)
+    _required_flags = field_validator("is_core", "active", mode="before")(_reject_null)
 
 
 class HabitOut(BaseModel):

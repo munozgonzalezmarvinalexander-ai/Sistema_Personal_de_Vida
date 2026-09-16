@@ -20,29 +20,42 @@ const MESSAGES: Record<string, { title: string; body: string }> = {
 export default function ReminderChecker() {
   const { token, user } = useAuth();
   const checking = useRef(false);
+  const generation = useRef(0);
+  const settingsCache = useRef<{ userId: string; value: ReminderSettings; at: number } | null>(null);
 
-  const deliver = useCallback(async (type: string) => {
+  const deliver = useCallback(async (type: string, expectedGeneration: number) => {
     if (!user || wasReminderShownToday(user.id, type)) return;
     const message = MESSAGES[type];
-    if (await showLocalNotification(message.title, message.body, `rumbo-${type}`)) {
+    if (expectedGeneration !== generation.current || !token) return;
+    if (await showLocalNotification(message.title, message.body, `rumbo-${type}`)
+        && expectedGeneration === generation.current && token) {
       markReminderShown(user.id, type);
     }
-  }, [user]);
+  }, [token, user]);
 
   const check = useCallback(async () => {
     if (!token || !user || checking.current) return;
     checking.current = true;
+    const expectedGeneration = generation.current;
+    const controller = new AbortController();
     try {
-      const { data: settings } = await api.get<ReminderSettings>('/reminders/settings');
+      let settings = settingsCache.current?.userId === user.id && Date.now() - settingsCache.current.at < 300_000
+        ? settingsCache.current.value : null;
+      if (!settings) {
+        const response = await api.get<ReminderSettings>('/reminders/settings', { signal: controller.signal });
+        settings = response.data;
+        settingsCache.current = { userId: user.id, value: settings, at: Date.now() };
+      }
+      if (expectedGeneration !== generation.current) return;
       if (settings.daily_checkin_enabled && isTimeDue(settings.daily_checkin_time)) {
         const { data: checkin } = await api.get('/checkins/today');
-        if (!checkin) await deliver('daily_checkin');
+        if (!checkin) await deliver('daily_checkin', expectedGeneration);
       }
       if (settings.evening_shutdown_enabled && isTimeDue(settings.evening_shutdown_time)) {
-        await deliver('evening_shutdown');
+        await deliver('evening_shutdown', expectedGeneration);
       }
       if (settings.weekly_review_enabled && isDayMatch(settings.weekly_review_day) && isTimeDue(settings.weekly_review_time)) {
-        await deliver('weekly_review');
+        await deliver('weekly_review', expectedGeneration);
       }
       if (settings.habit_nudge_enabled && isTimeDue(settings.daily_checkin_time, 120)) {
         const date = guatemalaDateString();
@@ -51,7 +64,7 @@ export default function ReminderChecker() {
           api.get<HabitLog[]>('/habit-logs', { params: { log_date: date } }),
         ]);
         const completed = new Set(logs.filter((log) => log.completed).map((log) => log.habit_id));
-        if (habits.some((habit) => !completed.has(habit.id))) await deliver('habit_nudge');
+        if (habits.some((habit) => !completed.has(habit.id))) await deliver('habit_nudge', expectedGeneration);
       }
     } catch {
       // Connectivity failures are retried on the next timer/focus/online event.
@@ -61,6 +74,7 @@ export default function ReminderChecker() {
   }, [deliver, token, user]);
 
   useEffect(() => {
+    generation.current += 1;
     if (!token || !user) return;
     void check();
     const interval = window.setInterval(check, 60_000);
@@ -68,13 +82,16 @@ export default function ReminderChecker() {
     const onFocus = () => void check();
     window.addEventListener('focus', onFocus);
     window.addEventListener('online', onFocus);
-    window.addEventListener(REMINDER_SETTINGS_UPDATED_EVENT, onFocus);
+    const onSettingsUpdated = () => { settingsCache.current = null; void check(); };
+    window.addEventListener(REMINDER_SETTINGS_UPDATED_EVENT, onSettingsUpdated);
     document.addEventListener('visibilitychange', onVisible);
     return () => {
       window.clearInterval(interval);
       window.removeEventListener('focus', onFocus);
       window.removeEventListener('online', onFocus);
-      window.removeEventListener(REMINDER_SETTINGS_UPDATED_EVENT, onFocus);
+      generation.current += 1;
+      checking.current = false;
+      window.removeEventListener(REMINDER_SETTINGS_UPDATED_EVENT, onSettingsUpdated);
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, [check, token, user]);

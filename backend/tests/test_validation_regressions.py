@@ -28,6 +28,29 @@ def test_rejects_invalid_time_and_metric_ranges(auth_client):
     assert auth_client.put("/api/reminders/settings", json={
         "daily_checkin_time": "24:61",
     }).status_code == 422
+    assert auth_client.put("/api/reminders/settings", json={"daily_checkin_time": None}).status_code == 422
+    assert auth_client.put("/api/reminders/settings", json={"daily_checkin_enabled": None}).status_code == 422
+    habit_id = auth_client.get("/api/habits").json()[0]["id"]
+    assert auth_client.put(f"/api/habits/{habit_id}", json={"active": None}).status_code == 422
+
+
+def test_decimal_limits_and_nullable_checkin_fields(auth_client):
+    today = date.today().isoformat()
+    ok = auth_client.post("/api/checkins", json={"checkin_date": today, "spending": 999999.99})
+    assert ok.status_code == 201
+    assert auth_client.put(f"/api/checkins/{ok.json()['id']}", json={"spending": None}).status_code == 200
+    tomorrow = (date.today() + timedelta(days=1)).isoformat()
+    assert auth_client.post("/api/checkins", json={"checkin_date": tomorrow, "spending": 1000000}).status_code == 422
+    later = (date.today() + timedelta(days=2)).isoformat()
+    assert auth_client.post("/api/checkins", json={"checkin_date": later, "spending": 1.001}).status_code == 422
+
+
+def test_empty_checkin_counts_as_active_day(auth_client):
+    today = date.today().isoformat()
+    assert auth_client.post("/api/checkins", json={"checkin_date": today}).status_code == 201
+    streak = auth_client.get("/api/reports/streaks").json()
+    assert streak["total_active_days"] == 1
+    assert streak["current_streak"] == 1
     assert auth_client.post("/api/checkins", json={
         "checkin_date": date.today().isoformat(),
         "english_minutes": 1441,

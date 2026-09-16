@@ -33,23 +33,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const validatingToken = token;
+    const controller = new AbortController();
+    let current = true;
     setSessionError(null);
     if (validatingToken) {
       setLoading(true);
-      api.get('/auth/me')
+      api.get('/auth/me', { signal: controller.signal })
         .then((res) => {
-          if (localStorage.getItem('token') === validatingToken) setUser(res.data);
+          if (current && localStorage.getItem('token') === validatingToken) setUser(res.data);
         })
         .catch((error) => {
+          if (axios.isCancel(error) || !current) return;
           if (localStorage.getItem('token') !== validatingToken) return;
           const status = axios.isAxiosError(error) ? error.response?.status : undefined;
           if (status === 401 || status === 403) logout();
           else setSessionError('No se pudo validar la sesion. Conservamos tus datos; revisa la conexion e intenta de nuevo.');
         })
-        .finally(() => setLoading(false));
+        .finally(() => { if (current) setLoading(false); });
     } else {
       setLoading(false);
     }
+    return () => { current = false; controller.abort(); };
   }, [token, validationAttempt, logout]);
 
   useEffect(() => {

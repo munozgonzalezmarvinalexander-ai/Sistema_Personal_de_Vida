@@ -3,3 +3,12 @@ dist
 .env
 .env.local
 .env.production
+*.env*
+backups
+*.dump
+*.backup
+*.sql.gz
+*.pem
+*.key
+*.p12
+*.pfx

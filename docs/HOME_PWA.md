@@ -40,19 +40,41 @@ Los recordatorios locales se reevalúan al abrir o recuperar el foco de la app y
 
 ## Copia y restauracion verificable
 
+Neon usa PostgreSQL 18 en este proyecto. Usa herramientas cliente 18 (o una version posterior compatible); no uses la imagen 16 del perfil antiguo. `docker compose --env-file` entrega variables a Compose, pero **no** las exporta a tu terminal, por lo que los comandos de copia deben leerlas explicitamente.
+
+En PowerShell, crea primero una carpeta local ignorada por Git y carga las dos conexiones directas (sin `-pooler`) solo en la sesion actual:
+
+```powershell
+New-Item -ItemType Directory -Force backups | Out-Null
+$env:DATABASE_URL = Read-Host "URL directa de origen"
+$env:RESTORE_DATABASE_URL = Read-Host "URL directa de la rama aislada"
+docker run --rm -e DATABASE_URL -v "${PWD}/backups:/backups" postgres:18-alpine pg_dump `$DATABASE_URL -Fc -f /backups/rumbo.dump
+docker run --rm -e RESTORE_DATABASE_URL -v "${PWD}/backups:/backups" postgres:18-alpine pg_restore --clean --if-exists --no-owner -d `$RESTORE_DATABASE_URL /backups/rumbo.dump
+```
+
 Antes de una migracion importante, crea una rama de backup en Neon y ademas un dump logico:
 
 ```bash
-docker run --rm -e DATABASE_URL="$DATABASE_URL" -v "$PWD/backups:/backups" postgres:16-alpine sh -c 'pg_dump "$DATABASE_URL" -Fc -f /backups/rumbo.dump'
+docker run --rm -e DATABASE_URL="$DATABASE_URL" -v "$PWD/backups:/backups" postgres:18-alpine sh -c 'pg_dump "$DATABASE_URL" -Fc -f /backups/rumbo.dump'
 ```
 
 Prueba la restauracion en una rama Neon temporal, nunca primero en produccion:
 
 ```bash
-docker run --rm -e RESTORE_DATABASE_URL="$RESTORE_DATABASE_URL" -v "$PWD/backups:/backups" postgres:16-alpine sh -c 'pg_restore --clean --if-exists --no-owner -d "$RESTORE_DATABASE_URL" /backups/rumbo.dump'
+docker run --rm -e RESTORE_DATABASE_URL="$RESTORE_DATABASE_URL" -v "$PWD/backups:/backups" postgres:18-alpine sh -c 'pg_restore --clean --if-exists --no-owner -d "$RESTORE_DATABASE_URL" /backups/rumbo.dump'
 ```
 
 Verifica alli que Alembic esta en `head`, que los conteos de usuarios/check-ins/logs coinciden y que puedes iniciar sesion. Elimina la rama temporal solo despues de documentar el resultado.
+
+Los JSON/CSV exportados por Rumbo sirven para consulta y portabilidad, pero no sustituyen una copia restaurable de PostgreSQL. Protege `backups/rumbo.dump` como un secreto: contiene datos personales aunque no incluya la contraseña de conexion.
+
+## Comportamiento y limites que conviene conocer
+
+- Una racha considera activo cualquier dia con un check-in guardado o al menos un habito completado. Tolera un dia ausente; dos dias ausentes la cortan. La mejor racha mostrada y usada para nuevos logros se calcula sobre una ventana movil de 90 dias. Los logros ya obtenidos no se revocan.
+- Los reportes convierten la fecha de creacion de habitos a `America/Guatemala`. Un habito inactivo solo aparece si tuvo actividad en el periodo. Como no existe historial de activacion/desactivacion, no es posible reconstruir si estuvo activo en cada dia antiguo.
+- Las correlaciones son exploratorias, no prueban causalidad. La “confianza” es una heuristica basada en tamano de muestra y fuerza estadistica; las relaciones de ayer a hoy conservan siempre su direccion temporal.
+- Los borradores de Hoy viven unicamente en el navegador, separados por usuario y fecha. “Descartar borradores locales” no borra datos ya guardados en Neon.
+- Las actualizaciones de la PWA se ofrecen sin forzar una recarga; si recargas con cambios pendientes, el navegador muestra la advertencia de salida.
 
 ## Diagnostico
 

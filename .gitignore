@@ -24,6 +24,17 @@ frontend/.env
 frontend/.env.local
 frontend/.env.production
 
+# Local backups, dumps and private TLS material
+backups/
+*.dump
+*.backup
+*.sql.gz
+*.pem
+*.key
+*.p12
+*.pfx
+rumbo-home-ca.crt
+
 # IDE
 .vscode/
 .idea/

@@ -318,7 +318,7 @@ function CorrelationCard({ corr }: { corr: Correlation }) {
           r = {corr.coefficient > 0 ? '+' : ''}{corr.coefficient}
         </span>
         <span className="corr-sample">{corr.sample_size} dias</span>
-        <span className="corr-conf">Confianza: {CONFIDENCE_LABELS[corr.confidence]}</span>
+        <span className="corr-conf" title="Heuristica basada en cantidad de datos y fuerza de la correlacion">Confianza heuristica: {CONFIDENCE_LABELS[corr.confidence]}</span>
         {corr.lag_days > 0 && (
           <span className="corr-lag-info">
             <Clock size={10} /> dia anterior → dia siguiente
