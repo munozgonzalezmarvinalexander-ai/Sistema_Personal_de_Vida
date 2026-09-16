@@ -18,8 +18,8 @@ export default function Register() {
     setError('');
     if (!displayName.trim()) { setError('Ingresa tu nombre'); return; }
     if (!email.trim()) { setError('Ingresa tu email'); return; }
-    if (password.length < 6) {
-      setError('La contrasena debe tener al menos 6 caracteres');
+    if (password.length < 8) {
+      setError('La contrasena debe tener al menos 8 caracteres');
       return;
     }
     setLoading(true);
@@ -75,7 +75,8 @@ export default function Register() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              placeholder="Minimo 6 caracteres"
+              minLength={8}
+              placeholder="Minimo 8 caracteres"
               autoComplete="new-password"
             />
           </div>

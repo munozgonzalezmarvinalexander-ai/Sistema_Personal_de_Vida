@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api, { getErrorMessage } from '../api/client';
 import type { ReminderSettings } from '../api/types';
+import { REMINDER_SETTINGS_UPDATED_EVENT } from '../components/ReminderChecker';
 import {
   getNotificationPermission, requestNotificationPermission, showLocalNotification,
 } from '../api/notifications';
@@ -43,6 +44,7 @@ export default function Reminders() {
     try {
       const res = await api.put('/reminders/settings', updates);
       setSettings(res.data);
+      window.dispatchEvent(new Event(REMINDER_SETTINGS_UPDATED_EVENT));
       showToast('success', 'Recordatorios guardados');
     } catch (err) {
       showToast('error', getErrorMessage(err));
@@ -53,15 +55,15 @@ export default function Reminders() {
     const result = await requestNotificationPermission();
     setNotifPerm(result);
     if (result === 'granted') {
-      showLocalNotification('Rumbo', 'Notificaciones activadas. Te recordaremos registrar tu dia.');
+      await showLocalNotification('Rumbo', 'Notificaciones activadas. Te recordaremos registrar tu dia.', 'rumbo-permission-test');
       showToast('success', 'Notificaciones activadas');
     } else if (result === 'denied') {
       showToast('error', 'Permiso denegado. Puedes cambiarlo en la configuracion del navegador.');
     }
   };
 
-  const handleTestNotif = () => {
-    const sent = showLocalNotification('Rumbo', 'Es momento de registrar tu dia.');
+  const handleTestNotif = async () => {
+    const sent = await showLocalNotification('Rumbo', 'Es momento de registrar tu dia.', 'rumbo-manual-test');
     if (sent) {
       showToast('success', 'Notificacion de prueba enviada');
     } else {

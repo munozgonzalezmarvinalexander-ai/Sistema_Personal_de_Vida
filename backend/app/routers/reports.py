@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from app.core.database import get_db
+from app.core.dates import today_local
 from app.core.deps import get_current_user
 from app.models.daily_checkin import DailyCheckin
 from app.models.habit import Habit
@@ -29,7 +30,11 @@ def _week_stats(db: Session, user_id: str, start: date, end: date):
         .all()
     )
     days_logged = len(checkins)
-    total_points = sum(c.points for c in checkins)
+    total_points = int(db.query(func.coalesce(func.sum(HabitLog.points), 0)).filter(
+        HabitLog.user_id == user_id,
+        HabitLog.log_date >= start,
+        HabitLog.log_date <= end,
+    ).scalar() or 0)
     sleep_vals = [float(c.sleep_hours) for c in checkins if c.sleep_hours is not None]
     mood_vals = [c.mood for c in checkins if c.mood is not None]
     energy_vals = [c.energy for c in checkins if c.energy is not None]
@@ -100,25 +105,31 @@ def weekly_report(
         .all()
     )
 
-    habits_map = {
-        h.id: h for h in db.query(Habit).filter(Habit.user_id == current_user.id).all()
+    stats_map = {
+        hs.habit_id: (int(hs.days_completed or 0), int(hs.total_points or 0))
+        for hs in habit_stats
     }
+    habits = db.query(Habit).filter(Habit.user_id == current_user.id).all()
+    habit_reports = [
+        HabitReport(
+            habit_id=habit.id,
+            name=habit.name,
+            category=habit.category,
+            days_completed=stats_map.get(habit.id, (0, 0))[0],
+            total_points=stats_map.get(habit.id, (0, 0))[1],
+        )
+        for habit in habits
+        if habit.created_at.date() <= end_date
+    ]
 
-    habit_reports = []
-    for hs in habit_stats:
-        habit = habits_map.get(hs.habit_id)
-        if habit:
-            habit_reports.append(
-                HabitReport(
-                    habit_id=hs.habit_id,
-                    name=habit.name,
-                    category=habit.category,
-                    days_completed=hs.days_completed,
-                    total_points=int(hs.total_points or 0),
-                )
-            )
-
-    sorted_reports = sorted(habit_reports, key=lambda r: r.days_completed, reverse=True)
+    most_completed = sorted(
+        habit_reports,
+        key=lambda report: (-report.days_completed, -report.total_points, report.name.lower()),
+    )[:3]
+    least_completed = sorted(
+        habit_reports,
+        key=lambda report: (report.days_completed, report.total_points, report.name.lower()),
+    )[:3]
 
     return WeeklyReport(
         start_date=start_date.isoformat(),
@@ -133,8 +144,8 @@ def weekly_report(
         total_programming_minutes=cur["total_programming"],
         total_reading_minutes=cur["total_reading"],
         total_meditation_minutes=cur["total_meditation"],
-        habits_most_completed=sorted_reports[:3],
-        habits_least_completed=sorted_reports[-3:] if len(sorted_reports) > 3 else sorted_reports,
+        habits_most_completed=most_completed,
+        habits_least_completed=least_completed,
         comparison=comparison,
     )
 
@@ -145,7 +156,7 @@ def trends(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    end = date.today()
+    end = today_local()
     start = end - timedelta(days=days - 1)
 
     checkins = (
@@ -178,11 +189,9 @@ def trends(
     while current <= end:
         c = checkin_map.get(current)
         hp = habit_points_by_date.get(current, 0)
-        checkin_pts = c.points if c else 0
-        total_pts = max(hp, checkin_pts)
         data.append(TrendDay(
             date=current.isoformat(),
-            points=total_pts,
+            points=hp,
             sleep_hours=float(c.sleep_hours) if c and c.sleep_hours is not None else None,
             mood=c.mood if c else None,
             energy=c.energy if c else None,
@@ -203,7 +212,7 @@ def streaks(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    end = date.today()
+    end = today_local()
     start = end - timedelta(days=89)
 
     checkins = (

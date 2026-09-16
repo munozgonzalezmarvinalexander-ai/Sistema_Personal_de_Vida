@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from app.core.database import get_db
+from app.core.dates import today_local
 from app.core.deps import get_current_user
 from app.models.daily_checkin import DailyCheckin
 from app.models.habit import Habit
@@ -45,7 +46,7 @@ def _mk(type_: str, title: str, message: str, recommendation: str,
 
 
 def generate_insights(db: Session, user_id: str) -> list[InsightOut]:
-    today = date.today()
+    today = today_local()
     insights: list[InsightOut] = []
 
     for period in [7, 14]:
@@ -337,7 +338,8 @@ def _message(metric_x: str, metric_y: str, direction: str, lag: int = 0) -> str:
     else:
         templates = LAG_POSITIVE_TEMPLATES if direction == "positive" else LAG_NEGATIVE_TEMPLATES
     idx = hash(metric_x + metric_y) % len(templates)
-    return templates[idx].format(x=lx, y=ly)
+    pattern = templates[idx].format(x=lx, y=ly)
+    return f"Patron exploratorio: {pattern} Una correlacion no demuestra causalidad."
 
 
 def _recommendation(metric_x: str, metric_y: str, lag: int = 0) -> str:
@@ -352,7 +354,7 @@ MAX_SCATTER_POINTS = 50
 
 
 def compute_correlations(db: Session, user_id: str, days: int, lag: int = 0) -> CorrelationsResponse:
-    today = date.today()
+    today = today_local()
     start = today - timedelta(days=days - 1 + lag)
     checkins = db.query(DailyCheckin).filter(
         DailyCheckin.user_id == user_id,
@@ -425,57 +427,54 @@ def compute_correlations(db: Session, user_id: str, days: int, lag: int = 0) -> 
     else:
         by_date: dict[date, DailyCheckin] = {c.checkin_date: c for c in checkins}
         results = []
-        seen = set()
 
         for i, mx in enumerate(CORRELATION_METRICS):
             for my in CORRELATION_METRICS[i + 1:]:
-                if (mx, my) in seen:
-                    continue
-                seen.add((mx, my))
+                for source_metric, target_metric in ((mx, my), (my, mx)):
+                    triples: list[tuple[date, float, float]] = []
+                    for d, checkin in sorted(by_date.items()):
+                        next_checkin = by_date.get(d + timedelta(days=1))
+                        if next_checkin is None:
+                            continue
+                        source_value = getattr(checkin, source_metric, None)
+                        target_value = getattr(next_checkin, target_metric, None)
+                        if source_value is not None and target_value is not None:
+                            triples.append((d, float(source_value), float(target_value)))
 
-                triples: list[tuple[date, float, float]] = []
-                for d, c in sorted(by_date.items()):
-                    next_d = d + timedelta(days=1)
-                    if next_d not in by_date:
+                    if len(triples) < 7:
                         continue
-                    x_val = getattr(c, mx, None)
-                    y_val = getattr(by_date[next_d], my, None)
-                    if x_val is not None and y_val is not None:
-                        triples.append((d, float(x_val), float(y_val)))
 
-                if len(triples) < 7:
-                    continue
+                    _, xs, ys = zip(*triples)
+                    coefficient = _pearson(list(xs), list(ys))
+                    if coefficient is None:
+                        continue
 
-                dates_list, xs, ys = zip(*triples)
-                r = _pearson(list(xs), list(ys))
-                if r is None:
-                    continue
+                    strength = _strength(coefficient)
+                    if strength == "weak":
+                        continue
 
-                s = _strength(r)
-                if s == "weak":
-                    continue
-
-                direction = "positive" if r > 0 else "negative"
-                conf = _confidence(len(triples), s)
-
-                points = [
-                    CorrelationPointOut(date=d.isoformat(), x=xv, y=yv)
-                    for d, xv, yv in triples[:MAX_SCATTER_POINTS]
-                ]
-
-                results.append(CorrelationOut(
-                    id=str(uuid.uuid4())[:8],
-                    metric_x=mx, metric_y=my,
-                    label_x=METRIC_LABELS[mx], label_y=METRIC_LABELS[my],
-                    coefficient=round(r, 3),
-                    strength=s, direction=direction,
-                    sample_size=len(triples),
-                    message=_message(mx, my, direction, lag=1),
-                    recommendation=_recommendation(mx, my, lag=1),
-                    confidence=conf,
-                    lag_days=1,
-                    data_points=points,
-                ))
+                    direction = "positive" if coefficient > 0 else "negative"
+                    confidence = _confidence(len(triples), strength)
+                    points = [
+                        CorrelationPointOut(date=d.isoformat(), x=xv, y=yv)
+                        for d, xv, yv in triples[:MAX_SCATTER_POINTS]
+                    ]
+                    results.append(CorrelationOut(
+                        id=str(uuid.uuid4())[:8],
+                        metric_x=source_metric,
+                        metric_y=target_metric,
+                        label_x=METRIC_LABELS[source_metric],
+                        label_y=METRIC_LABELS[target_metric],
+                        coefficient=round(coefficient, 3),
+                        strength=strength,
+                        direction=direction,
+                        sample_size=len(triples),
+                        message=_message(source_metric, target_metric, direction, lag=1),
+                        recommendation=_recommendation(source_metric, target_metric, lag=1),
+                        confidence=confidence,
+                        lag_days=1,
+                        data_points=points,
+                    ))
 
     results.sort(key=lambda c: abs(c.coefficient), reverse=True)
 
@@ -544,7 +543,7 @@ def get_summary(
     best = None
     attention = None
     for i in all_insights:
-        if i.priority == "low" and i.type.endswith("_improved") or i.type.endswith("_up"):
+        if i.priority == "low" and (i.type.endswith("_improved") or i.type.endswith("_up")):
             best = i.related_metric
         if i.priority == "high":
             attention = i.related_metric

@@ -1,7 +1,16 @@
 from datetime import date, datetime
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+
+def _strip_required(value: str | None) -> str:
+    if value is None:
+        raise ValueError("El valor no puede ser nulo")
+    value = value.strip()
+    if not value:
+        raise ValueError("El texto no puede estar vacio")
+    return value
 
 
 class DurationDays(int, Enum):
@@ -23,6 +32,9 @@ class ExperimentCreate(BaseModel):
     metric_tracked: str = Field(..., min_length=1, max_length=100)
     duration_days: DurationDays
     start_date: date
+    library_item_id: str | None = None
+
+    _required_text = field_validator("title", "hypothesis", "metric_tracked", mode="before")(_strip_required)
 
 
 class ExperimentUpdate(BaseModel):
@@ -31,10 +43,14 @@ class ExperimentUpdate(BaseModel):
     hypothesis: str | None = None
     metric_tracked: str | None = None
 
+    _required_text = field_validator("title", "hypothesis", "metric_tracked", mode="before")(_strip_required)
+
 
 class ExperimentComplete(BaseModel):
     result: str = Field(..., min_length=1)
     decision: DecisionType
+
+    _required_result = field_validator("result", mode="before")(_strip_required)
 
 
 class ExperimentOut(BaseModel):

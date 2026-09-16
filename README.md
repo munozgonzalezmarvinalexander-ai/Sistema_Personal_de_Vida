@@ -112,7 +112,7 @@ pip install -r requirements.txt
 pytest -v
 ```
 
-Usa SQLite en memoria — no necesita PostgreSQL.
+Por defecto usa SQLite en memoria. Con `TEST_DATABASE_URL` ejecuta la misma suite en un esquema PostgreSQL aislado; CI usa esta modalidad.
 
 ### Frontend
 
@@ -132,8 +132,8 @@ API_URL=http://localhost:8000/api python scripts/smoke_backend.py
 ### CI/CD
 
 GitHub Actions ejecuta automaticamente en cada push/PR a main:
-- **Backend:** compileall, alembic migrations, pytest (58 tests)
-- **Frontend:** tsc, build, vitest (21 tests)
+- **Backend:** compileall, Alembic y 71 pruebas sobre PostgreSQL real
+- **Frontend:** TypeScript, build PWA y 26 pruebas
 
 ## Deploy
 
@@ -148,6 +148,8 @@ GitHub Actions ejecuta automaticamente en cada push/PR a main:
 - Railway
 - VPS manual con nginx
 
+**PWA domestica con HTTPS + Neon:** Ver [docs/HOME_PWA.md](docs/HOME_PWA.md). Este perfil no abre puertos del router; los datos siguen almacenados remotamente en Neon, no dentro de la computadora domestica.
+
 **Nota:** El `render.yaml` incluido solo despliega el frontend (static site gratuito). El backend y la base de datos se configuran por separado para evitar cobros.
 
 ## Variables de entorno
@@ -157,7 +159,7 @@ GitHub Actions ejecuta automaticamente en cada push/PR a main:
 | Variable | Requerida | Default | Descripcion |
 |----------|-----------|---------|-------------|
 | `DATABASE_URL` | Si | — | Conexion PostgreSQL |
-| `SECRET_KEY` | Si | — | Clave JWT (min 16 chars) |
+| `SECRET_KEY` | Si | — | Clave JWT aleatoria (min 32 caracteres; sin valor por defecto) |
 | `ALGORITHM` | No | `HS256` | Algoritmo JWT |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | No | `1440` | Expiracion de token |
 | `BACKEND_CORS_ORIGINS` | No | `localhost:5173,localhost:3000` | Origenes CORS |

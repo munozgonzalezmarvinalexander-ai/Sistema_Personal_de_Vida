@@ -43,3 +43,35 @@ def test_checkin_points_from_habits(auth_client):
     })
     res = auth_client.post("/api/checkins", json={"checkin_date": today})
     assert res.json()["points"] == 3
+
+
+def test_points_stay_synced_when_log_changes_or_is_deleted(auth_client):
+    today = date.today().isoformat()
+    habit_id = auth_client.get("/api/habits").json()[0]["id"]
+    checkin = auth_client.post("/api/checkins", json={"checkin_date": today}).json()
+
+    log = auth_client.post("/api/habit-logs", json={
+        "habit_id": habit_id, "log_date": today, "level_done": "ideal",
+    }).json()
+    current = auth_client.get("/api/checkins/today", params={"checkin_date": today}).json()
+    assert current["id"] == checkin["id"]
+    assert current["points"] == 3
+
+    auth_client.put(f"/api/habit-logs/{log['id']}", json={"level_done": "min"})
+    assert auth_client.get("/api/checkins/today", params={"checkin_date": today}).json()["points"] == 1
+
+    deleted = auth_client.delete(f"/api/habit-logs/{log['id']}")
+    assert deleted.status_code == 204
+    assert auth_client.get("/api/checkins/today", params={"checkin_date": today}).json()["points"] == 0
+
+
+def test_deleting_habit_resets_affected_checkin_points(auth_client):
+    today = date.today().isoformat()
+    habit_id = auth_client.get("/api/habits").json()[0]["id"]
+    auth_client.post("/api/checkins", json={"checkin_date": today})
+    auth_client.post("/api/habit-logs", json={
+        "habit_id": habit_id, "log_date": today, "level_done": "normal",
+    })
+    assert auth_client.get("/api/checkins/today").json()["points"] == 2
+    assert auth_client.delete(f"/api/habits/{habit_id}").status_code == 204
+    assert auth_client.get("/api/checkins/today").json()["points"] == 0

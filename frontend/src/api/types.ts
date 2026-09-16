@@ -32,6 +32,7 @@ export interface HabitCreate {
   level_normal: string;
   level_ideal: string;
   is_core: boolean;
+  library_item_id?: string;
 }
 
 export type LevelDone = 'none' | 'min' | 'normal' | 'ideal';
@@ -157,6 +158,7 @@ export interface ExperimentCreate {
   metric_tracked: string;
   duration_days: 7 | 14 | 30;
   start_date: string;
+  library_item_id?: string;
 }
 
 export type EvidenceType = 'science' | 'tradition' | 'personal';

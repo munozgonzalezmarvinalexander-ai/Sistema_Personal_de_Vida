@@ -13,12 +13,12 @@ class DailyCheckinCreate(BaseModel):
     food_quality: int | None = Field(None, ge=1, le=5)
     screen_hours: float | None = Field(None, ge=0, le=24)
     spending: float | None = Field(None, ge=0)
-    university_study_minutes: int | None = Field(None, ge=0)
-    english_minutes: int | None = Field(None, ge=0)
-    programming_minutes: int | None = Field(None, ge=0)
-    reading_minutes: int | None = Field(None, ge=0)
-    meditation_minutes: int | None = Field(None, ge=0)
-    note: str | None = None
+    university_study_minutes: int | None = Field(None, ge=0, le=1440)
+    english_minutes: int | None = Field(None, ge=0, le=1440)
+    programming_minutes: int | None = Field(None, ge=0, le=1440)
+    reading_minutes: int | None = Field(None, ge=0, le=1440)
+    meditation_minutes: int | None = Field(None, ge=0, le=1440)
+    note: str | None = Field(None, max_length=5000)
 
 
 class DailyCheckinUpdate(BaseModel):
@@ -30,12 +30,12 @@ class DailyCheckinUpdate(BaseModel):
     food_quality: int | None = Field(None, ge=1, le=5)
     screen_hours: float | None = Field(None, ge=0, le=24)
     spending: float | None = Field(None, ge=0)
-    university_study_minutes: int | None = Field(None, ge=0)
-    english_minutes: int | None = Field(None, ge=0)
-    programming_minutes: int | None = Field(None, ge=0)
-    reading_minutes: int | None = Field(None, ge=0)
-    meditation_minutes: int | None = Field(None, ge=0)
-    note: str | None = None
+    university_study_minutes: int | None = Field(None, ge=0, le=1440)
+    english_minutes: int | None = Field(None, ge=0, le=1440)
+    programming_minutes: int | None = Field(None, ge=0, le=1440)
+    reading_minutes: int | None = Field(None, ge=0, le=1440)
+    meditation_minutes: int | None = Field(None, ge=0, le=1440)
+    note: str | None = Field(None, max_length=5000)
 
 
 class DailyCheckinOut(BaseModel):

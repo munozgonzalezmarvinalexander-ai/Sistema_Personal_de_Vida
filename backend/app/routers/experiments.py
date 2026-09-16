@@ -6,10 +6,12 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.experiment import Experiment
+from app.models.habit_library import HabitLibraryItem
 from app.models.user import User
 from app.schemas.experiment import (
     ExperimentCreate, ExperimentUpdate, ExperimentComplete, ExperimentOut,
 )
+from app.services.achievements import unlock_achievement
 
 router = APIRouter(prefix="/experiments", tags=["experiments"])
 
@@ -32,6 +34,13 @@ def create_experiment(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    if data.library_item_id:
+        library_item = db.query(HabitLibraryItem).filter(
+            HabitLibraryItem.id == data.library_item_id,
+            HabitLibraryItem.active.is_(True),
+        ).first()
+        if not library_item:
+            raise HTTPException(status_code=400, detail="Elemento de biblioteca invalido")
     end_date = data.start_date + timedelta(days=data.duration_days.value - 1)
     exp = Experiment(
         user_id=current_user.id,
@@ -45,6 +54,10 @@ def create_experiment(
         status="active",
     )
     db.add(exp)
+    db.flush()
+    unlock_achievement(db, current_user.id, "experiment_started")
+    if data.library_item_id:
+        unlock_achievement(db, current_user.id, "library_used")
     db.commit()
     db.refresh(exp)
     return exp
@@ -105,6 +118,8 @@ def complete_experiment(
     exp.status = "completed"
     exp.result = data.result
     exp.decision = data.decision.value
+    db.flush()
+    unlock_achievement(db, current_user.id, "experiment_completed")
     db.commit()
     db.refresh(exp)
     return exp

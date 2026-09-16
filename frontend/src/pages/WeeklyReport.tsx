@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api, { getErrorMessage } from '../api/client';
 import type { WeeklyReport as WeeklyReportType, StreakResponse, ComparisonValue } from '../api/types';
+import { dateFromIso, guatemalaDateString, mondayForGuatemala } from '../utils/date';
 import {
   ChevronLeft, ChevronRight, Moon, Heart, Zap, GraduationCap,
   Languages, Code, BookOpen, Brain, Trophy, Star, TrendingUp,
@@ -8,16 +9,8 @@ import {
   ArrowUp, ArrowDown, Minus
 } from 'lucide-react';
 
-function getMonday(d: Date): Date {
-  const result = new Date(d);
-  const day = result.getDay();
-  const diff = result.getDate() - day + (day === 0 ? -6 : 1);
-  result.setDate(diff);
-  return result;
-}
-
 function formatDateStr(d: Date): string {
-  return d.toISOString().split('T')[0];
+  return guatemalaDateString(d);
 }
 
 function DirectionIcon({ dir }: { dir: string }) {
@@ -63,7 +56,7 @@ function getInsight(report: WeeklyReportType): string {
 }
 
 export default function WeeklyReport() {
-  const [monday, setMonday] = useState(() => getMonday(new Date()));
+  const [monday, setMonday] = useState(() => dateFromIso(mondayForGuatemala()));
   const [report, setReport] = useState<WeeklyReportType | null>(null);
   const [streak, setStreak] = useState<StreakResponse | null>(null);
   const [loading, setLoading] = useState(false);

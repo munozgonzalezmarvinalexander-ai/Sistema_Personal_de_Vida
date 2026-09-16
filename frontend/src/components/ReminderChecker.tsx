@@ -1,62 +1,83 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import api from '../api/client';
-import type { ReminderSettings } from '../api/types';
+import type { Habit, HabitLog, ReminderSettings } from '../api/types';
+import { useAuth } from '../context/AuthContext';
+import { guatemalaDateString } from '../utils/date';
 import {
-  isTimeMatch, isDayMatch, wasReminderShownToday,
+  isTimeDue, isDayMatch, wasReminderShownToday,
   markReminderShown, showLocalNotification,
 } from '../api/notifications';
 
+export const REMINDER_SETTINGS_UPDATED_EVENT = 'rumbo:reminder-settings-updated';
+
 const MESSAGES: Record<string, { title: string; body: string }> = {
-  daily_checkin: {
-    title: 'Rumbo',
-    body: 'Es momento de registrar tu dia.',
-  },
-  evening_shutdown: {
-    title: 'Rumbo',
-    body: 'Hora de tu cierre nocturno. Reduce pantallas y prepara el descanso.',
-  },
-  weekly_review: {
-    title: 'Rumbo',
-    body: 'Hoy toca revision semanal. Mira que funciono esta semana.',
-  },
+  daily_checkin: { title: 'Rumbo', body: 'Es momento de registrar tu dia.' },
+  evening_shutdown: { title: 'Rumbo', body: 'Hora de tu cierre nocturno. Reduce pantallas y prepara el descanso.' },
+  weekly_review: { title: 'Rumbo', body: 'Hoy toca revision semanal. Mira que funciono esta semana.' },
+  habit_nudge: { title: 'Rumbo', body: 'Aun tienes habitos pendientes. Una version minima tambien cuenta.' },
 };
 
 export default function ReminderChecker() {
-  const settingsRef = useRef<ReminderSettings | null>(null);
+  const { token, user } = useAuth();
+  const checking = useRef(false);
+
+  const deliver = useCallback(async (type: string) => {
+    if (!user || wasReminderShownToday(user.id, type)) return;
+    const message = MESSAGES[type];
+    if (await showLocalNotification(message.title, message.body, `rumbo-${type}`)) {
+      markReminderShown(user.id, type);
+    }
+  }, [user]);
+
+  const check = useCallback(async () => {
+    if (!token || !user || checking.current) return;
+    checking.current = true;
+    try {
+      const { data: settings } = await api.get<ReminderSettings>('/reminders/settings');
+      if (settings.daily_checkin_enabled && isTimeDue(settings.daily_checkin_time)) {
+        const { data: checkin } = await api.get('/checkins/today');
+        if (!checkin) await deliver('daily_checkin');
+      }
+      if (settings.evening_shutdown_enabled && isTimeDue(settings.evening_shutdown_time)) {
+        await deliver('evening_shutdown');
+      }
+      if (settings.weekly_review_enabled && isDayMatch(settings.weekly_review_day) && isTimeDue(settings.weekly_review_time)) {
+        await deliver('weekly_review');
+      }
+      if (settings.habit_nudge_enabled && isTimeDue(settings.daily_checkin_time, 120)) {
+        const date = guatemalaDateString();
+        const [{ data: habits }, { data: logs }] = await Promise.all([
+          api.get<Habit[]>('/habits', { params: { active_only: true } }),
+          api.get<HabitLog[]>('/habit-logs', { params: { log_date: date } }),
+        ]);
+        const completed = new Set(logs.filter((log) => log.completed).map((log) => log.habit_id));
+        if (habits.some((habit) => !completed.has(habit.id))) await deliver('habit_nudge');
+      }
+    } catch {
+      // Connectivity failures are retried on the next timer/focus/online event.
+    } finally {
+      checking.current = false;
+    }
+  }, [deliver, token, user]);
 
   useEffect(() => {
-    api.get('/reminders/settings')
-      .then((res) => { settingsRef.current = res.data; })
-      .catch(() => {});
-
-    const interval = setInterval(() => {
-      const s = settingsRef.current;
-      if (!s) return;
-
-      if (s.daily_checkin_enabled && isTimeMatch(s.daily_checkin_time)) {
-        if (!wasReminderShownToday('daily_checkin')) {
-          markReminderShown('daily_checkin');
-          showLocalNotification(MESSAGES.daily_checkin.title, MESSAGES.daily_checkin.body);
-        }
-      }
-
-      if (s.evening_shutdown_enabled && isTimeMatch(s.evening_shutdown_time)) {
-        if (!wasReminderShownToday('evening_shutdown')) {
-          markReminderShown('evening_shutdown');
-          showLocalNotification(MESSAGES.evening_shutdown.title, MESSAGES.evening_shutdown.body);
-        }
-      }
-
-      if (s.weekly_review_enabled && isDayMatch(s.weekly_review_day) && isTimeMatch(s.weekly_review_time)) {
-        if (!wasReminderShownToday('weekly_review')) {
-          markReminderShown('weekly_review');
-          showLocalNotification(MESSAGES.weekly_review.title, MESSAGES.weekly_review.body);
-        }
-      }
-    }, 60000);
-
-    return () => clearInterval(interval);
-  }, []);
+    if (!token || !user) return;
+    void check();
+    const interval = window.setInterval(check, 60_000);
+    const onVisible = () => { if (document.visibilityState === 'visible') void check(); };
+    const onFocus = () => void check();
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('online', onFocus);
+    window.addEventListener(REMINDER_SETTINGS_UPDATED_EVENT, onFocus);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('online', onFocus);
+      window.removeEventListener(REMINDER_SETTINGS_UPDATED_EVENT, onFocus);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [check, token, user]);
 
   return null;
 }
