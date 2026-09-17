@@ -72,6 +72,12 @@ Los JSON/CSV exportados por Rumbo sirven para consulta y portabilidad, pero no s
 
 El repositorio también incluye el flujo manual **Database Restore Check**. Usa dos secretos temporales de GitHub (`AUDIT_SOURCE_DATABASE_URL` y `AUDIT_RESTORE_DATABASE_URL`), exige URLs directas y diferentes, genera un dump con PostgreSQL 18, restaura únicamente en el destino aislado, compara Alembic y conteos, y prueba registro/inicio de sesión contra la aplicación restaurada. El dump se elimina del ejecutor y nunca se publica como artefacto.
 
+### Última verificación real
+
+El 17 de septiembre de 2026 se ejecutó [Database Restore Check #35227859429](https://github.com/munozgonzalezmarvinalexander-ai/Sistema_Personal_de_Vida/actions/runs/35227859429) sobre PostgreSQL 18.6. El dump de producción se restauró en la rama Neon aislada `audit-pg-restore-20260916-v2` (`br-little-union-atajnjsh`), sin restaurar sobre producción. Antes de probar la aplicación, origen y destino coincidieron en la revisión Alembic `c7d14a9206b1` y en los conteos relevantes: 0 usuarios, 0 check-ins, 0 registros de hábitos, 17 elementos de biblioteca y 0 hábitos de usuario.
+
+La API restaurada completó registro e inicio de sesión; por eso la rama aislada conserva después de la prueba 1 usuario sintético y sus 8 hábitos iniciales. Producción se volvió a consultar y permaneció con los conteos originales. El dump temporal se eliminó del ejecutor, no se publicó como artefacto y los dos secretos temporales de GitHub se retiraron al finalizar.
+
 ## Comportamiento y limites que conviene conocer
 
 - Una racha considera activo cualquier dia con un check-in guardado o al menos un habito completado. Tolera un dia ausente; dos dias ausentes la cortan. La mejor racha mostrada y usada para nuevos logros se calcula sobre una ventana movil de 90 dias. Los logros ya obtenidos no se revocan.
