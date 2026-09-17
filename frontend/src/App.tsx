@@ -5,6 +5,7 @@ import Layout from './components/Layout';
 import OfflineBanner from './components/OfflineBanner';
 import InstallPrompt from './components/InstallPrompt';
 import ReminderChecker from './components/ReminderChecker';
+import UpdatePrompt from './components/UpdatePrompt';
 import ErrorBoundary from './components/ErrorBoundary';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -41,6 +42,7 @@ export default function App() {
         <ErrorBoundary>
           <OfflineBanner />
           <InstallPrompt />
+          <UpdatePrompt />
           <ReminderChecker />
           <Suspense fallback={<div className="loading-screen">Cargando pantalla...</div>}>
           <Routes>

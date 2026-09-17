@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import api, { getErrorMessage } from '../api/client';
 import type { Habit, HabitLog, DailyCheckin, LevelDone, StreakResponse, UserProgress, RecalculateResult, Insight } from '../api/types';
 import { APP_TIME_ZONE, formatGuatemalaDate, guatemalaDateString } from '../utils/date';
-import { clearUserDrafts, parseTodayDraft, savedSnapshotIsCurrent, type TodayMetrics } from '../utils/todayDraft';
+import { clearDraft, clearUserDrafts, normalizeDecimal, parseTodayDraft, savedSnapshotIsCurrent, type TodayMetrics } from '../utils/todayDraft';
+import { setUnsavedChanges } from '../utils/dirtyState';
 import {
   Sun, Moon, Droplets, Brain, Zap, UtensilsCrossed,
   Smartphone, Wallet, BookOpen, Code, GraduationCap,
@@ -37,13 +38,18 @@ const EMPTY_METRICS = {
 
 type Metrics = TodayMetrics;
 
-function clampNum(val: string, min: number, max: number, step: number): string {
-  if (val === '') return '';
-  let n = Number(val);
-  if (isNaN(n)) return '';
-  n = Math.max(min, Math.min(max, n));
-  if (step >= 1) n = Math.round(n);
-  return String(n);
+function checkinMetrics(checkin: DailyCheckin | null): Metrics {
+  if (!checkin) return { ...EMPTY_METRICS };
+  return {
+    sleep_hours: checkin.sleep_hours?.toString() ?? '', sleep_quality: checkin.sleep_quality?.toString() ?? '',
+    water_liters: checkin.water_liters?.toString() ?? '', mood: checkin.mood?.toString() ?? '',
+    energy: checkin.energy?.toString() ?? '', food_quality: checkin.food_quality?.toString() ?? '',
+    screen_hours: checkin.screen_hours?.toString() ?? '', spending: checkin.spending?.toString() ?? '',
+    university_study_minutes: checkin.university_study_minutes?.toString() ?? '',
+    english_minutes: checkin.english_minutes?.toString() ?? '', programming_minutes: checkin.programming_minutes?.toString() ?? '',
+    reading_minutes: checkin.reading_minutes?.toString() ?? '', meditation_minutes: checkin.meditation_minutes?.toString() ?? '',
+    note: checkin.note ?? '',
+  };
 }
 
 export default function Today() {
@@ -70,6 +76,9 @@ export default function Today() {
   const pendingHabitRef = useRef(new Set<string>());
 
   const [metrics, setMetrics] = useState<Metrics>(EMPTY_METRICS);
+  const [confirmedMetrics, setConfirmedMetrics] = useState<Metrics>(EMPTY_METRICS);
+  const activeDateRef = useRef(activeDate);
+  activeDateRef.current = activeDate;
 
   const draftKey = user ? `rumbo_checkin_draft_${user.id}_${activeDate}` : '';
   const updateMetrics = (updates: Partial<Metrics>) => {
@@ -120,25 +129,8 @@ export default function Today() {
       }
       setLogs(logsMap);
       setCheckin(checkinRes.data || null);
-      let loadedMetrics: Metrics = { ...EMPTY_METRICS };
-      if (checkinRes.data) {
-        loadedMetrics = {
-          sleep_hours: checkinRes.data.sleep_hours?.toString() ?? '',
-          sleep_quality: checkinRes.data.sleep_quality?.toString() ?? '',
-          water_liters: checkinRes.data.water_liters?.toString() ?? '',
-          mood: checkinRes.data.mood?.toString() ?? '',
-          energy: checkinRes.data.energy?.toString() ?? '',
-          food_quality: checkinRes.data.food_quality?.toString() ?? '',
-          screen_hours: checkinRes.data.screen_hours?.toString() ?? '',
-          spending: checkinRes.data.spending?.toString() ?? '',
-          university_study_minutes: checkinRes.data.university_study_minutes?.toString() ?? '',
-          english_minutes: checkinRes.data.english_minutes?.toString() ?? '',
-          programming_minutes: checkinRes.data.programming_minutes?.toString() ?? '',
-          reading_minutes: checkinRes.data.reading_minutes?.toString() ?? '',
-          meditation_minutes: checkinRes.data.meditation_minutes?.toString() ?? '',
-          note: checkinRes.data.note ?? '',
-        };
-      }
+      let loadedMetrics = checkinMetrics(checkinRes.data || null);
+      setConfirmedMetrics(loadedMetrics);
       let savedDraft: string | null = null;
       try { savedDraft = draftKey ? localStorage.getItem(draftKey) : null; }
       catch { setDraftStorageError(true); }
@@ -168,6 +160,11 @@ export default function Today() {
       setDraftStorageError(false);
     } catch { setDraftStorageError(true); }
   }, [dirty, draftKey, metrics]);
+
+  useEffect(() => {
+    setUnsavedChanges(dirty || saving || pendingHabits.size > 0);
+    return () => setUnsavedChanges(false);
+  }, [dirty, saving, pendingHabits]);
 
   useEffect(() => {
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -240,7 +237,13 @@ export default function Today() {
     savingRef.current = true;
     setSaving(true);
     const savedRevision = editRevision.current;
-    const snapshot = { ...metrics };
+    const snapshot = {
+      ...metrics,
+      sleep_hours: normalizeDecimal(metrics.sleep_hours, 0, 24, 1),
+      water_liters: normalizeDecimal(metrics.water_liters, 0, 15, 1),
+      screen_hours: normalizeDecimal(metrics.screen_hours, 0, 24, 1),
+      spending: normalizeDecimal(metrics.spending, 0, 999999.99, 2),
+    };
     const savedDate = activeDate;
     try {
       const payload: Record<string, unknown> = { checkin_date: activeDate };
@@ -258,12 +261,18 @@ export default function Today() {
       if (checkin) {
         const { checkin_date: _, ...updatePayload } = payload;
         const res = await api.put(`/checkins/${checkin.id}`, updatePayload);
-        setCheckin(res.data);
+        if (activeDateRef.current === savedDate) {
+          setCheckin(res.data);
+          setConfirmedMetrics(checkinMetrics(res.data));
+        }
       } else {
         const res = await api.post('/checkins', payload);
-        setCheckin(res.data);
+        if (activeDateRef.current === savedDate) {
+          setCheckin(res.data);
+          setConfirmedMetrics(checkinMetrics(res.data));
+        }
       }
-      if (savedSnapshotIsCurrent(savedRevision, editRevision.current, savedDate, activeDate)) {
+      if (savedSnapshotIsCurrent(savedRevision, editRevision.current, savedDate, activeDateRef.current)) {
         try { localStorage.removeItem(draftKey); } catch { setDraftStorageError(true); }
         setDirty(false);
       }
@@ -284,7 +293,20 @@ export default function Today() {
     }
   };
 
-  const discardLocalDrafts = () => {
+  const discardCurrentDraft = () => {
+    if (!clearDraft(draftKey)) {
+      setDraftStorageError(true);
+      showToast('error', 'No se pudo descartar el borrador local');
+      return;
+    }
+    editRevision.current += 1;
+    setMetrics({ ...confirmedMetrics });
+    setDirty(false);
+    setDraftStorageError(false);
+    showToast('success', 'Borrador descartado; restauramos los ultimos datos guardados');
+  };
+
+  const discardAllLocalDrafts = () => {
     if (!user) return;
     if (!clearUserDrafts(user.id)) {
       setDraftStorageError(true);
@@ -292,7 +314,7 @@ export default function Today() {
       return;
     }
     editRevision.current += 1;
-    setMetrics({ ...EMPTY_METRICS });
+    setMetrics({ ...confirmedMetrics });
     setDirty(false);
     setDraftStorageError(false);
     showToast('success', 'Borradores locales eliminados; los datos guardados no cambiaron');
@@ -351,7 +373,8 @@ export default function Today() {
           <AlertCircle size={18} />
           <p>Empezó un nuevo día. Este formulario sigue guardando el {activeDate} para no mezclar registros.</p>
           <button className="btn btn-secondary btn-sm" onClick={() => {
-            if (dirty) { showToast('error', 'Guarda este borrador antes de cambiar de día.'); return; }
+            if (savingRef.current || pendingHabitRef.current.size > 0) { showToast('error', 'Espera a que terminen los guardados pendientes.'); return; }
+            if (dirty) { showToast('error', 'Guarda o descarta este borrador antes de cambiar de día.'); return; }
             setActiveDate(guatemalaDateString());
             setDayChanged(false);
           }}>Ir al día actual</button>
@@ -478,10 +501,10 @@ export default function Today() {
           <div className="metrics-grid">
             <div className="metric-item">
               <label><Moon size={16} /> Horas de sueno</label>
-              <input type="number" step="0.5" min="0" max="24" inputMode="decimal"
+              <input type="number" step="0.1" min="0" max="24" inputMode="decimal"
                 value={metrics.sleep_hours}
                 onChange={(e) => updateMetrics({ sleep_hours: e.target.value })}
-                onBlur={(e) => updateMetrics({ sleep_hours: clampNum(e.target.value, 0, 24, 0.5) })}
+                onBlur={(e) => updateMetrics({ sleep_hours: normalizeDecimal(e.target.value, 0, 24, 1) })}
                 placeholder="7.5"
               />
             </div>
@@ -498,10 +521,10 @@ export default function Today() {
             </div>
             <div className="metric-item">
               <label><Droplets size={16} /> Agua (litros)</label>
-              <input type="number" step="0.5" min="0" max="15" inputMode="decimal"
+              <input type="number" step="0.1" min="0" max="15" inputMode="decimal"
                 value={metrics.water_liters}
                 onChange={(e) => updateMetrics({ water_liters: e.target.value })}
-                onBlur={(e) => updateMetrics({ water_liters: clampNum(e.target.value, 0, 15, 0.5) })}
+                onBlur={(e) => updateMetrics({ water_liters: normalizeDecimal(e.target.value, 0, 15, 1) })}
                 placeholder="2.5"
               />
             </div>
@@ -549,7 +572,7 @@ export default function Today() {
               <input type="number" min="0" inputMode="numeric"
                 value={metrics.university_study_minutes}
                 onChange={(e) => updateMetrics({ university_study_minutes: e.target.value })}
-                onBlur={(e) => updateMetrics({ university_study_minutes: clampNum(e.target.value, 0, 1440, 1) })}
+                onBlur={(e) => updateMetrics({ university_study_minutes: normalizeDecimal(e.target.value, 0, 1440, 0) })}
                 placeholder="45"
               />
             </div>
@@ -558,7 +581,7 @@ export default function Today() {
               <input type="number" min="0" inputMode="numeric"
                 value={metrics.english_minutes}
                 onChange={(e) => updateMetrics({ english_minutes: e.target.value })}
-                onBlur={(e) => updateMetrics({ english_minutes: clampNum(e.target.value, 0, 1440, 1) })}
+                onBlur={(e) => updateMetrics({ english_minutes: normalizeDecimal(e.target.value, 0, 1440, 0) })}
                 placeholder="20"
               />
             </div>
@@ -567,7 +590,7 @@ export default function Today() {
               <input type="number" min="0" inputMode="numeric"
                 value={metrics.programming_minutes}
                 onChange={(e) => updateMetrics({ programming_minutes: e.target.value })}
-                onBlur={(e) => updateMetrics({ programming_minutes: clampNum(e.target.value, 0, 1440, 1) })}
+                onBlur={(e) => updateMetrics({ programming_minutes: normalizeDecimal(e.target.value, 0, 1440, 0) })}
                 placeholder="30"
               />
             </div>
@@ -576,7 +599,7 @@ export default function Today() {
               <input type="number" min="0" inputMode="numeric"
                 value={metrics.reading_minutes}
                 onChange={(e) => updateMetrics({ reading_minutes: e.target.value })}
-                onBlur={(e) => updateMetrics({ reading_minutes: clampNum(e.target.value, 0, 1440, 1) })}
+                onBlur={(e) => updateMetrics({ reading_minutes: normalizeDecimal(e.target.value, 0, 1440, 0) })}
                 placeholder="15"
               />
             </div>
@@ -585,7 +608,7 @@ export default function Today() {
               <input type="number" min="0" inputMode="numeric"
                 value={metrics.meditation_minutes}
                 onChange={(e) => updateMetrics({ meditation_minutes: e.target.value })}
-                onBlur={(e) => updateMetrics({ meditation_minutes: clampNum(e.target.value, 0, 1440, 1) })}
+                onBlur={(e) => updateMetrics({ meditation_minutes: normalizeDecimal(e.target.value, 0, 1440, 0) })}
                 placeholder="5"
               />
             </div>
@@ -597,10 +620,10 @@ export default function Today() {
           <div className="metrics-grid">
             <div className="metric-item">
               <label><Smartphone size={16} /> Pantalla (horas)</label>
-              <input type="number" step="0.5" min="0" max="24" inputMode="decimal"
+              <input type="number" step="0.1" min="0" max="24" inputMode="decimal"
                 value={metrics.screen_hours}
                 onChange={(e) => updateMetrics({ screen_hours: e.target.value })}
-                onBlur={(e) => updateMetrics({ screen_hours: clampNum(e.target.value, 0, 24, 0.5) })}
+                onBlur={(e) => updateMetrics({ screen_hours: normalizeDecimal(e.target.value, 0, 24, 1) })}
                 placeholder="3"
               />
             </div>
@@ -609,7 +632,7 @@ export default function Today() {
               <input type="number" min="0" max="999999.99" step="0.01" inputMode="decimal"
                 value={metrics.spending}
                 onChange={(e) => updateMetrics({ spending: e.target.value })}
-                onBlur={(e) => updateMetrics({ spending: clampNum(e.target.value, 0, 999999.99, 0.01) })}
+                onBlur={(e) => updateMetrics({ spending: normalizeDecimal(e.target.value, 0, 999999.99, 2) })}
                 placeholder="50"
               />
             </div>
@@ -631,7 +654,8 @@ export default function Today() {
            <><Save size={18} /> Guardar dia</>}
         </button>
         {draftStorageError && <p className="error-msg">Los cambios siguen en esta pestaña, pero el navegador no pudo proteger este borrador local.</p>}
-        {dirty && <button type="button" className="btn btn-secondary btn-full" onClick={discardLocalDrafts}>Descartar borradores locales</button>}
+        {dirty && <button type="button" className="btn btn-secondary btn-full" onClick={discardCurrentDraft} disabled={saving}>Descartar borrador de este dia</button>}
+        <button type="button" className="btn btn-secondary btn-full" onClick={discardAllLocalDrafts} disabled={saving}>Eliminar todos mis borradores locales</button>
       </section>
     </div>
   );

@@ -13,22 +13,29 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
   return result;
 }
 
-export async function showLocalNotification(title: string, body: string, tag = 'rumbo-reminder'): Promise<boolean> {
+export async function showLocalNotification(
+  title: string,
+  body: string,
+  tag = 'rumbo-reminder',
+  isSessionCurrent: () => boolean = () => true,
+): Promise<boolean> {
   if (typeof window === 'undefined' || !('Notification' in window)) {
     return false;
   }
-  if (Notification.permission !== 'granted') {
+  if (Notification.permission !== 'granted' || !isSessionCurrent()) {
     return false;
   }
   const options = { body, icon: '/icons/icon-192x192.png', badge: '/icons/icon-192x192.png', tag };
   try {
     if ('serviceWorker' in navigator) {
       const registration = await navigator.serviceWorker.getRegistration();
+      if (!isSessionCurrent()) return false;
       if (registration) {
         await registration.showNotification(title, options);
         return true;
       }
     }
+    if (!isSessionCurrent()) return false;
     new Notification(title, options);
     return true;
   } catch {

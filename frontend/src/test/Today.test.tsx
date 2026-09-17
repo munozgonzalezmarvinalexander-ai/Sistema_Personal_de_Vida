@@ -77,4 +77,52 @@ describe('Today draft save lifecycle', () => {
     await waitFor(() => expect(localStorage.getItem(draftKey())).toContain('version dos'));
     expect(note).toHaveValue('version dos');
   });
+
+  it('restores server-confirmed values when discarding only the current draft', async () => {
+    mockedApi.get.mockImplementation(async (url: string) => {
+      if (url === '/habits' || url === '/habit-logs' || url === '/insights') return { data: [] } as never;
+      if (url === '/checkins/today') return { data: { id: 'saved', note: 'confirmado', spending: 25 } } as never;
+      return { data: null } as never;
+    });
+    render(<Today />);
+    const note = await screen.findByPlaceholderText('Como fue tu dia?');
+    expect(note).toHaveValue('confirmado');
+    fireEvent.change(note, { target: { value: 'borrador' } });
+    await waitFor(() => expect(localStorage.getItem(draftKey())).toContain('borrador'));
+    fireEvent.click(screen.getByRole('button', { name: 'Descartar borrador de este dia' }));
+    expect(note).toHaveValue('confirmado');
+    expect(localStorage.getItem(draftKey())).toBeNull();
+    expect(mockedApi.put).not.toHaveBeenCalled();
+  });
+
+  it('keeps delete-all separate and restores the current confirmed data', async () => {
+    mockedApi.get.mockImplementation(async (url: string) => {
+      if (url === '/habits' || url === '/habit-logs' || url === '/insights') return { data: [] } as never;
+      if (url === '/checkins/today') return { data: { id: 'saved', note: 'servidor' } } as never;
+      return { data: null } as never;
+    });
+    localStorage.setItem('rumbo_checkin_draft_draft-user_2026-01-01', '{}');
+    render(<Today />);
+    const note = await screen.findByPlaceholderText('Como fue tu dia?');
+    fireEvent.change(note, { target: { value: 'local' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar todos mis borradores locales' }));
+    expect(note).toHaveValue('servidor');
+    expect(localStorage.getItem('rumbo_checkin_draft_draft-user_2026-01-01')).toBeNull();
+  });
+
+  it('normalizes decimal precision immediately before sending', async () => {
+    mockedApi.post.mockImplementation(async (url: string) => {
+      if (url === '/checkins') return { data: { id: 'checkin-1' } } as never;
+      if (url === '/gamification/recalculate') return { data: { new_achievements: [] } } as never;
+      return { data: null } as never;
+    });
+    render(<Today />);
+    fireEvent.change(await screen.findByPlaceholderText('7.5'), { target: { value: '7.25' } });
+    fireEvent.change(screen.getByPlaceholderText('2.5'), { target: { value: '3.4000000000000004' } });
+    fireEvent.change(screen.getByPlaceholderText('50'), { target: { value: '12.345' } });
+    fireEvent.click(screen.getByRole('button', { name: /Guardar dia/i }));
+    await waitFor(() => expect(mockedApi.post).toHaveBeenCalledWith('/checkins', expect.objectContaining({
+      sleep_hours: 7.3, water_liters: 3.4, spending: 12.35, screen_hours: null,
+    })));
+  });
 });

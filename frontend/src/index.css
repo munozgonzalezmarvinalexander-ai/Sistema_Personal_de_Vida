@@ -1152,6 +1152,16 @@ a:hover { text-decoration: underline; }
   color: var(--text-light); font-size: 1rem;
 }
 .empty-state { text-align: center; color: var(--text-light); padding: 2rem 1rem; }
+.update-prompt {
+  position: fixed; left: 50%; bottom: 1rem; transform: translateX(-50%); z-index: 1200;
+  width: min(92vw, 620px); display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.9rem; border: 1px solid var(--primary); border-radius: var(--radius);
+  background: var(--bg-card); box-shadow: var(--shadow-lg); color: var(--text);
+}
+.update-prompt > div:nth-child(2) { flex: 1; }
+.update-prompt strong { color: var(--text-heading); }
+.update-prompt p { margin: 0.2rem 0 0; font-size: 0.8rem; color: var(--text-light); }
+.update-actions { display: flex; gap: 0.4rem; }
 
 @media (max-width: 768px) {
   .today-summary { gap: 0.5rem; }
@@ -1160,6 +1170,8 @@ a:hover { text-decoration: underline; }
 }
 
 @media (max-width: 480px) {
+  .update-prompt { align-items: flex-start; flex-wrap: wrap; }
+  .update-actions { width: 100%; }
   .metrics-grid { grid-template-columns: 1fr; }
   .report-summary { grid-template-columns: repeat(2, 1fr); }
   .level-buttons { display: grid; grid-template-columns: repeat(2, 1fr); }

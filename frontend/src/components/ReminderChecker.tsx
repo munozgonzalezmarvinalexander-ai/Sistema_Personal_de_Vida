@@ -22,22 +22,34 @@ export default function ReminderChecker() {
   const checking = useRef(false);
   const generation = useRef(0);
   const settingsCache = useRef<{ userId: string; value: ReminderSettings; at: number } | null>(null);
+  const controllers = useRef(new Set<AbortController>());
+
+  const sessionIsCurrent = useCallback((expectedGeneration: number) => {
+    try {
+      return expectedGeneration === generation.current && !!token && localStorage.getItem('token') === token;
+    } catch {
+      return expectedGeneration === generation.current && !!token;
+    }
+  }, [token]);
 
   const deliver = useCallback(async (type: string, expectedGeneration: number) => {
     if (!user || wasReminderShownToday(user.id, type)) return;
     const message = MESSAGES[type];
-    if (expectedGeneration !== generation.current || !token) return;
-    if (await showLocalNotification(message.title, message.body, `rumbo-${type}`)
-        && expectedGeneration === generation.current && token) {
+    if (!sessionIsCurrent(expectedGeneration)) return;
+    if (await showLocalNotification(
+      message.title, message.body, `rumbo-${type}`,
+      () => sessionIsCurrent(expectedGeneration),
+    ) && sessionIsCurrent(expectedGeneration)) {
       markReminderShown(user.id, type);
     }
-  }, [token, user]);
+  }, [sessionIsCurrent, user]);
 
   const check = useCallback(async () => {
     if (!token || !user || checking.current) return;
     checking.current = true;
     const expectedGeneration = generation.current;
     const controller = new AbortController();
+    controllers.current.add(controller);
     try {
       let settings = settingsCache.current?.userId === user.id && Date.now() - settingsCache.current.at < 300_000
         ? settingsCache.current.value : null;
@@ -48,7 +60,7 @@ export default function ReminderChecker() {
       }
       if (expectedGeneration !== generation.current) return;
       if (settings.daily_checkin_enabled && isTimeDue(settings.daily_checkin_time)) {
-        const { data: checkin } = await api.get('/checkins/today');
+        const { data: checkin } = await api.get('/checkins/today', { signal: controller.signal });
         if (!checkin) await deliver('daily_checkin', expectedGeneration);
       }
       if (settings.evening_shutdown_enabled && isTimeDue(settings.evening_shutdown_time)) {
@@ -60,8 +72,8 @@ export default function ReminderChecker() {
       if (settings.habit_nudge_enabled && isTimeDue(settings.daily_checkin_time, 120)) {
         const date = guatemalaDateString();
         const [{ data: habits }, { data: logs }] = await Promise.all([
-          api.get<Habit[]>('/habits', { params: { active_only: true } }),
-          api.get<HabitLog[]>('/habit-logs', { params: { log_date: date } }),
+          api.get<Habit[]>('/habits', { params: { active_only: true }, signal: controller.signal }),
+          api.get<HabitLog[]>('/habit-logs', { params: { log_date: date }, signal: controller.signal }),
         ]);
         const completed = new Set(logs.filter((log) => log.completed).map((log) => log.habit_id));
         if (habits.some((habit) => !completed.has(habit.id))) await deliver('habit_nudge', expectedGeneration);
@@ -69,6 +81,7 @@ export default function ReminderChecker() {
     } catch {
       // Connectivity failures are retried on the next timer/focus/online event.
     } finally {
+      controllers.current.delete(controller);
       checking.current = false;
     }
   }, [deliver, token, user]);
@@ -76,6 +89,7 @@ export default function ReminderChecker() {
   useEffect(() => {
     generation.current += 1;
     if (!token || !user) return;
+    const activeControllers = controllers.current;
     void check();
     const interval = window.setInterval(check, 60_000);
     const onVisible = () => { if (document.visibilityState === 'visible') void check(); };
@@ -90,6 +104,8 @@ export default function ReminderChecker() {
       window.removeEventListener('focus', onFocus);
       window.removeEventListener('online', onFocus);
       generation.current += 1;
+      activeControllers.forEach((controller) => controller.abort());
+      activeControllers.clear();
       checking.current = false;
       window.removeEventListener(REMINDER_SETTINGS_UPDATED_EVENT, onSettingsUpdated);
       document.removeEventListener('visibilitychange', onVisible);

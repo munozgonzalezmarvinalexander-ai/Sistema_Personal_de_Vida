@@ -4,14 +4,16 @@ from datetime import date, timedelta
 def _create_checkins(client, days_data):
     for offset, data in enumerate(days_data):
         d = (date.today() - timedelta(days=len(days_data) - 1 - offset)).isoformat()
-        client.post("/api/checkins", json={"checkin_date": d, **data})
+        response = client.post("/api/checkins", json={"checkin_date": d, **data})
+        assert response.status_code == 201, response.text
 
 
 def _create_consecutive_checkins(client, days_data):
     """Create checkins on strictly consecutive days ending today."""
     for offset, data in enumerate(days_data):
         d = (date.today() - timedelta(days=len(days_data) - 1 - offset)).isoformat()
-        client.post("/api/checkins", json={"checkin_date": d, **data})
+        response = client.post("/api/checkins", json={"checkin_date": d, **data})
+        assert response.status_code == 201, response.text
 
 
 def test_insufficient_data(auth_client):
@@ -25,9 +27,10 @@ def test_insufficient_data(auth_client):
 def test_insufficient_with_few_days(auth_client):
     for i in range(3):
         d = (date.today() - timedelta(days=i)).isoformat()
-        auth_client.post("/api/checkins", json={
+        response = auth_client.post("/api/checkins", json={
             "checkin_date": d, "sleep_hours": 7, "energy": 4,
         })
+        assert response.status_code == 201, response.text
     res = auth_client.get("/api/insights/correlations?days=14")
     assert res.json()["sample_size"] == 3
     assert res.json()["correlations"] == []
@@ -54,7 +57,7 @@ def test_strong_negative_correlation(auth_client):
     moods = [5, 5, 4, 4, 3, 3, 2, 2, 1, 1]
     data = []
     for i in range(10):
-        data.append({"screen_hours": 1.0 + i * 0.8, "mood": moods[i], "energy": 3})
+        data.append({"screen_hours": round(1.0 + i * 0.8, 1), "mood": moods[i], "energy": 3})
     _create_checkins(auth_client, data)
 
     res = auth_client.get("/api/insights/correlations?days=30")
@@ -72,10 +75,10 @@ def test_weak_correlations_hidden(auth_client):
     data = []
     for _ in range(15):
         data.append({
-            "sleep_hours": random.uniform(5, 9),
+            "sleep_hours": round(random.uniform(5, 9), 1),
             "energy": random.randint(1, 5),
             "mood": random.randint(1, 5),
-            "water_liters": random.uniform(0.5, 3),
+            "water_liters": round(random.uniform(0.5, 3), 1),
         })
     _create_checkins(auth_client, data)
 
@@ -104,7 +107,7 @@ def test_user_isolation(auth_client, second_client):
 def test_correlation_insights_in_main_endpoint(auth_client):
     data = []
     for i in range(10):
-        data.append({"sleep_hours": 5 + i * 0.5, "energy": 1 + i * 0.4, "mood": 3})
+        data.append({"sleep_hours": round(5 + i * 0.5, 1), "energy": min(5, 1 + i // 2), "mood": 3})
     _create_checkins(auth_client, data)
 
     res = auth_client.get("/api/insights")
@@ -128,11 +131,15 @@ def test_days_parameter_validation(auth_client):
 
 
 def test_lag_recommendations_never_reverse_temporal_direction():
-    from app.routers.insights import LAG_RECOMMENDATIONS, DEFAULT_LAG_RECOMMENDATION, _message, _recommendation
+    from app.routers.insights import LAG_RECOMMENDATIONS, DEFAULT_LAG_RECOMMENDATION, METRIC_LABELS, _message, _recommendation
 
     source, target = next(iter(LAG_RECOMMENDATIONS))
-    assert _recommendation(source, target, lag=1) == LAG_RECOMMENDATIONS[(source, target)]
-    assert _recommendation(target, source, lag=1) == DEFAULT_LAG_RECOMMENDATION
+    assert _recommendation(source, target, "positive", lag=1) == LAG_RECOMMENDATIONS[(source, target)]
+    assert _recommendation(target, source, "positive", lag=1) == DEFAULT_LAG_RECOMMENDATION
+    negative = _recommendation(source, target, "negative", lag=1)
+    assert METRIC_LABELS[source].lower() in negative.lower()
+    assert METRIC_LABELS[target].lower() in negative.lower()
+    assert "bajar" in negative.lower()
     assert "exploratorio" in _message(source, target, "positive", lag=1).lower()
     assert "exploratorio" in _message(source, target, "negative", lag=1).lower()
     assert "no demuestra causalidad" in _message(source, target, "negative", lag=1).lower()
@@ -140,7 +147,7 @@ def test_lag_recommendations_never_reverse_temporal_direction():
 def test_lag0_returns_data_points(auth_client):
     data = []
     for i in range(10):
-        data.append({"sleep_hours": 5.0 + i * 0.5, "energy": 1 + i * 0.4, "mood": 3})
+        data.append({"sleep_hours": round(5.0 + i * 0.5, 1), "energy": min(5, 1 + i // 2), "mood": 3})
     _create_checkins(auth_client, data)
 
     res = auth_client.get("/api/insights/correlations?days=30&lag=0")
@@ -164,7 +171,7 @@ def test_lag1_detects_sleep_energy(auth_client):
     data = []
     for i in range(12):
         data.append({
-            "sleep_hours": 5.0 + i * 0.4,
+            "sleep_hours": round(5.0 + i * 0.4, 1),
             "energy": energies[i],
             "mood": 3,
         })
@@ -192,9 +199,10 @@ def test_lag1_detects_sleep_energy(auth_client):
 def test_lag1_requires_consecutive_days(auth_client):
     for i in range(8):
         d = (date.today() - timedelta(days=i * 3)).isoformat()
-        auth_client.post("/api/checkins", json={
+        response = auth_client.post("/api/checkins", json={
             "checkin_date": d, "sleep_hours": 7, "energy": 4,
         })
+        assert response.status_code == 201, response.text
 
     res = auth_client.get("/api/insights/correlations?days=30&lag=1")
     assert res.status_code == 200
@@ -238,7 +246,7 @@ def test_lag1_data_points_user_isolation(auth_client, second_client):
     energies = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 4, 5]
     data = []
     for i in range(12):
-        data.append({"sleep_hours": 5.0 + i * 0.4, "energy": energies[i], "mood": 3})
+        data.append({"sleep_hours": round(5.0 + i * 0.4, 1), "energy": energies[i], "mood": 3})
     _create_consecutive_checkins(auth_client, data)
 
     res_owner = auth_client.get("/api/insights/correlations?days=30&lag=1")
