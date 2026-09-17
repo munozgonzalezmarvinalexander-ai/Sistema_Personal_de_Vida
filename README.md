@@ -150,6 +150,8 @@ GitHub Actions ejecuta automaticamente en cada push/PR a main:
 
 **PWA domestica con HTTPS + Neon:** Ver [docs/HOME_PWA.md](docs/HOME_PWA.md). Este perfil no abre puertos del router; los datos siguen almacenados remotamente en Neon, no dentro de la computadora domestica.
 
+**Guia completa para Windows 11 + Android:** Ver [docs/INSTALACION_WINDOWS_ANDROID.md](docs/INSTALACION_WINDOWS_ANDROID.md) para instalar Rumbo desde cero, configurarlo en la WiFi domestica, confiar en HTTPS, instalar la PWA, actualizar y recuperar respaldos.
+
 **Nota:** El `render.yaml` incluido solo despliega el frontend (static site gratuito). El backend y la base de datos se configuran por separado para evitar cobros.
 
 ## Variables de entorno
