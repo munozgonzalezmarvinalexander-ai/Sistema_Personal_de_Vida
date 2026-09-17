@@ -133,7 +133,7 @@ API_URL=http://localhost:8000/api python scripts/smoke_backend.py
 
 GitHub Actions ejecuta automaticamente en cada push/PR a main:
 - **Backend:** compileall, Alembic y 76 pruebas sobre PostgreSQL 18 real
-- **Frontend:** TypeScript, lint, build PWA y 32 pruebas
+- **Frontend:** TypeScript, lint, build PWA y 39 pruebas
 
 ## Deploy
 

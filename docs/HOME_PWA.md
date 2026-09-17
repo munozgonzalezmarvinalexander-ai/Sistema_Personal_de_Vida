@@ -48,8 +48,8 @@ En PowerShell, crea primero una carpeta local ignorada por Git y carga las dos c
 New-Item -ItemType Directory -Force backups | Out-Null
 $env:DATABASE_URL = Read-Host "URL directa de origen"
 $env:RESTORE_DATABASE_URL = Read-Host "URL directa de la rama aislada"
-docker run --rm -e DATABASE_URL -v "${PWD}/backups:/backups" postgres:18-alpine pg_dump `$DATABASE_URL -Fc -f /backups/rumbo.dump
-docker run --rm -e RESTORE_DATABASE_URL -v "${PWD}/backups:/backups" postgres:18-alpine pg_restore --clean --if-exists --no-owner -d `$RESTORE_DATABASE_URL /backups/rumbo.dump
+docker run --rm -e DATABASE_URL -v "${PWD}/backups:/backups" postgres:18-alpine sh -c 'pg_dump "$DATABASE_URL" -Fc -f /backups/rumbo.dump'
+docker run --rm -e RESTORE_DATABASE_URL -v "${PWD}/backups:/backups" postgres:18-alpine sh -c 'pg_restore --clean --if-exists --no-owner -d "$RESTORE_DATABASE_URL" /backups/rumbo.dump'
 ```
 
 Antes de una migracion importante, crea una rama de backup en Neon y ademas un dump logico:
@@ -66,7 +66,11 @@ docker run --rm -e RESTORE_DATABASE_URL="$RESTORE_DATABASE_URL" -v "$PWD/backups
 
 Verifica alli que Alembic esta en `head`, que los conteos de usuarios/check-ins/logs coinciden y que puedes iniciar sesion. Elimina la rama temporal solo despues de documentar el resultado.
 
+Los comandos usan `sh -c` deliberadamente: PowerShell solo pasa la variable al contenedor y la expansion de `$DATABASE_URL` ocurre dentro de este. La URL no aparece en la linea de comandos ni en el historial. Al terminar, limpia las variables de la sesion con `Remove-Item Env:DATABASE_URL,Env:RESTORE_DATABASE_URL`.
+
 Los JSON/CSV exportados por Rumbo sirven para consulta y portabilidad, pero no sustituyen una copia restaurable de PostgreSQL. Protege `backups/rumbo.dump` como un secreto: contiene datos personales aunque no incluya la contraseña de conexion.
+
+El repositorio también incluye el flujo manual **Database Restore Check**. Usa dos secretos temporales de GitHub (`AUDIT_SOURCE_DATABASE_URL` y `AUDIT_RESTORE_DATABASE_URL`), exige URLs directas y diferentes, genera un dump con PostgreSQL 18, restaura únicamente en el destino aislado, compara Alembic y conteos, y prueba registro/inicio de sesión contra la aplicación restaurada. El dump se elimina del ejecutor y nunca se publica como artefacto.
 
 ## Comportamiento y limites que conviene conocer
 

@@ -342,12 +342,16 @@ def _message(metric_x: str, metric_y: str, direction: str, lag: int = 0) -> str:
     return f"Patron exploratorio: {pattern} Una correlacion no demuestra causalidad."
 
 
-def _recommendation(metric_x: str, metric_y: str, lag: int = 0) -> str:
+def _recommendation(metric_x: str, metric_y: str, direction: str, lag: int = 0) -> str:
     key = (metric_x, metric_y)
     rev = (metric_y, metric_x)
     if lag == 0:
+        if direction == "negative":
+            return f"Cuando {METRIC_LABELS[metric_x].lower()} sube, {METRIC_LABELS[metric_y].lower()} tiende a bajar. Observa si se repite antes de cambiar tu rutina."
         return RECOMMENDATIONS.get(key, RECOMMENDATIONS.get(rev, DEFAULT_RECOMMENDATION))
     # Lagged relationships are directional: X yesterday -> Y today must never be reversed.
+    if direction == "negative":
+        return f"Cuando {METRIC_LABELS[metric_x].lower()} sube un dia, {METRIC_LABELS[metric_y].lower()} tiende a bajar al dia siguiente. Observa si se mantiene."
     return LAG_RECOMMENDATIONS.get(key, DEFAULT_LAG_RECOMMENDATION)
 
 
@@ -420,7 +424,7 @@ def compute_correlations(db: Session, user_id: str, days: int, lag: int = 0) -> 
                     strength=s, direction=direction,
                     sample_size=len(triples),
                     message=_message(mx, my, direction, lag=0),
-                    recommendation=_recommendation(mx, my, lag=0),
+                    recommendation=_recommendation(mx, my, direction, lag=0),
                     confidence=conf,
                     lag_days=0,
                     data_points=points,
@@ -471,7 +475,7 @@ def compute_correlations(db: Session, user_id: str, days: int, lag: int = 0) -> 
                         direction=direction,
                         sample_size=len(triples),
                         message=_message(source_metric, target_metric, direction, lag=1),
-                        recommendation=_recommendation(source_metric, target_metric, lag=1),
+                        recommendation=_recommendation(source_metric, target_metric, direction, lag=1),
                         confidence=confidence,
                         lag_days=1,
                         data_points=points,
