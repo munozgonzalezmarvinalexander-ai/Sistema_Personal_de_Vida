@@ -52,7 +52,7 @@ jobs:
           api_pid=$!
           trap 'kill $api_pid 2>/dev/null || true; rm -f ../backups/rumbo.dump' EXIT
           python - <<'PY'
-          import json, time, urllib.request
+          import json, os, time, urllib.request
 
           def request(path, payload=None):
               body = json.dumps(payload).encode() if payload else None
@@ -69,7 +69,7 @@ jobs:
           else:
               raise SystemExit("restored API did not start")
 
-          credentials = {"email": "restore-check@example.invalid", "password": "restore-check-123", "display_name": "Restore Check"}
+          credentials = {"email": f"restore-check-{os.environ['GITHUB_RUN_ID']}@example.com", "password": "restore-check-123", "display_name": "Restore Check"}
           status, registered = request("/auth/register", credentials)
           assert status == 201 and registered.get("access_token")
           status, logged_in = request("/auth/login", {"email": credentials["email"], "password": credentials["password"]})
